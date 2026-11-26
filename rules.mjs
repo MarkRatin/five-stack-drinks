@@ -184,7 +184,6 @@ export function drawRound(eligible, drawn, random = Math.random) {
   const id = choose(available, random).id;
   return {
     cardId: id,
-    reversalId: drawReversal(random),
     drawn: [...(reset ? drawn.filter(id => !eligible.some(item => item.id === id)) : drawn), id]
   };
 }

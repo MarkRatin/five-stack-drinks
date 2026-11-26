@@ -1,5 +1,5 @@
 import {players, fields, groups, groupNames, categoryNames, cards, reversals, dateInTaipei, fmt, eligibleCards,
-  availableCards, drawRound, drawReversal, rerollCard, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=reversal-scope';
+  availableCards, drawRound, drawReversal, rerollCard, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=manual-reversal';
 import {recognizeBatch} from './ocr.mjs?v=played-heroes';
 import {tarotArt} from './tarot.mjs?v=team-double-redesign';
 
@@ -88,6 +88,7 @@ function updateStatus(text, good=false) { status=text; tone=good?'good':''; anno
 function syncActive(id) { activeId=id; state.activeId=id; }
 const roundCardId = round => round?.rerollId || round?.cardId;
 const roundScoring=round=>round.rerollId ? round.rerollVersion ?? 1 : round.scoringVersion ?? 1;
+const reversalRevealed=round=>round.rerollId ? (round.rerollRevealed ?? round.revealed) : round.revealed;
 const roundReversal = round => round.reversalSnapshot ?? reversals.find(item=>item.id===round.reversalId);
 function selectedReversal(round) {
   // A pending reroll saved before this feature still uses its original reversal.
@@ -217,7 +218,7 @@ function lastHitMetric(result,player,current) {
   return baseline===null ? difference : `${difference}<small class="metric-baseline">${fmt(player.kills)} 殺 · 預估 ${fmt(baseline)}</small>`;
 }
 function reversalNotice(round,reversal,results,currentMatch,preview) {
-  if(!round.revealed) return '';
+  if(!reversalRevealed(round)) return '<p class="subtle result-no-reversal">當局基本分已算好，按「抽取反轉卡」揭曉命運。</p>';
   if(!reversal) return `<p class="subtle result-no-reversal">${round.rerollId?'這次重骰':'這次計分'}未觸發反轉。</p>`;
 
   let bonuses = '';
@@ -236,7 +237,7 @@ function reversalNotice(round,reversal,results,currentMatch,preview) {
 }
 function resultPanel(round,card,currentMatch,results,actions,preview,scoreLabel='') {
     const reversal=selectedReversal(round);
-    const displayReversal=round.revealed&&reversal;
+    const displayReversal=reversalRevealed(round)&&reversal;
     const playersById = new Map(currentMatch.rows.map(row=>[row.id,row]));
     const displayCardMetric = row => card.id==='last-hit-share' ? lastHitMetric(row,playersById.get(row.id),currentMatch) : esc(Number.isFinite(row.value)?fmt(row.value)+card.unit:'零擊殺');
     const isReroll=Boolean(round.rerollId);
@@ -268,7 +269,7 @@ function drawPanel() {
     const results=preview ? calculate(round,match) : recordedResults(round);
     const canReroll=signed()&&eligibleForRound(round).some(item=>item.id!==card.id);
     const saveLabel=round.saved?(isReroll?'以這張更新本局':'儲存更正'):'確認入帳';
-    const saveAction=!round.revealed ? button('揭曉反轉結果','reveal','primary')
+    const saveAction=!reversalRevealed(round) ? button('抽取反轉卡','reveal','primary')
       : (!round.saved||edit||isReroll ? button(saveLabel,'save','primary',!results.length||!signed()?'disabled':'') : '');
     const scoreIndex=round.saved ? matchScores(round).findIndex(item=>item.id===round.id)+1 : 0;
     const actions=`<div class="actions">${saveAction}
@@ -297,7 +298,7 @@ function additionalScorePanel(round) {
   const canReroll=eligibleCards(round.match,round.overviewOnly).some(item=>item.id!==cardId);
   const num=matchScores(round).length+1;
   const actions=`<div class="actions">
-    ${button('確認新增積分','additional-save','primary',results.length?'':'disabled')}
+    ${!reversalRevealed(round)?button('抽取反轉卡','additional-reveal','primary'):button('確認新增積分','additional-save','primary',results.length?'':'disabled')}
     ${button('再骰一張','additional-reroll','secondary',canReroll?'':'disabled')}
     ${button('取消新增計分','additional-cancel','soft')}
   </div><p class="subtle">確認後，這筆積分會和前面的計分一起算入排行榜。</p>`;
@@ -389,7 +390,7 @@ function historyDetail(round) {
   const canReroll=validMatch(round.match)&&eligibleCards(round.match,round.overviewOnly).some(item=>item.id!==card?.id);
   let actions='';
   if(isReroll){
-    actions=`<div class="actions">${button('以這張更新紀錄','history-save','primary',results.length?'':'disabled')}
+    actions=`<div class="actions">${!reversalRevealed(draft)?button('抽取反轉卡','history-reveal','primary'):button('以這張更新紀錄','history-save','primary',results.length?'':'disabled')}
       ${button('再骰一張','history-reroll','secondary',canReroll?'':'disabled')}${button('取消重骰','history-cancel','soft')}</div>`;
   } else if(!draft&&canEdit){
     actions=`<div class="actions">${button('再計分一次','additional-start','primary',busy?'disabled':'')}${button('再骰一張','history-reroll','secondary',canReroll?'':'disabled')}${button('更正戰績','history-edit','soft')}</div>`;
@@ -397,7 +398,7 @@ function historyDetail(round) {
     actions='<p class="notice">這局在本局有尚未確認的變更。<a href="#play">回本局繼續編修</a></p>';
   }
   if(canEdit&&(!draft||isReroll)) actions+='<p class="subtle">每次重骰都重新判定反轉，機率為 10%。</p>';
-  const displayRound={...(isReroll?draft:round),revealed:true,rerollId:isReroll?draft.rerollId:null};
+  const displayRound={...(isReroll?draft:round),revealed:isReroll?draft.revealed:true,rerollId:isReroll?draft.rerollId:null};
   return `<div class="history-detail-head">
     <a class="btn soft" href="${historyHref(historyDate)}">${icon('back')} 返回當日對局</a>
     ${header(`第 ${index} 局戰報`,`<time datetime="${esc(historyDate)}">${esc(show(historyDate))}</time>${round.match.time?` · ${esc(round.match.time)}`:''}${round.match.example?' · 試玩範例':''}`)}
@@ -607,7 +608,7 @@ function draw() {
   const id=localId();
   state.drawn[date]=result.drawn;
   state.rounds.push({id,signature:matchSignature(match),match:structuredClone(match),cardId:result.cardId,
-    reversalId:result.reversalId,reversalSnapshot:roundReversal(result),scoringVersion,overviewOnly,tried:[result.cardId],revealed:false,saved:false});
+    reversalId:null,reversalSnapshot:null,scoringVersion,overviewOnly,tried:[result.cardId],revealed:false,saved:false});
   syncActive(id); persist(); render('#result-h');
   document.querySelector('.result-tarot')?.classList.add('flip-in');
 }
@@ -618,21 +619,36 @@ function chooseReroll(round,current) {
   if(!next) return false;
   round.rerollId=next.id;
   round.rerollVersion=scoringVersion;
-  round.rerollReversalId=drawReversal();
+  round.rerollReversalId=null;
+  round.rerollRevealed=false;
   round.tried=[...new Set([...tried,next.id])];
   return true;
+}
+function drawReversalFor(round) {
+  if(!round || reversalRevealed(round)) return;
+  const id=drawReversal();
+  if(round.rerollId) {
+    round.rerollReversalId=id;
+    round.rerollRevealed=true;
+  } else {
+    round.reversalId=id;
+    round.reversalSnapshot=reversals.find(item=>item.id===id) ?? null;
+    round.revealed=true;
+  }
+  announce(id?'反轉卡已抽出。':'這次沒有觸發反轉卡。');
 }
 function reroll() {
   const round=activeRound();
   if(!round||busy||!signed()||!chooseReroll(round,match)) return;
   persist(); render('#result-h');
   document.querySelector('.result-tarot')?.classList.add('flip-in');
-  announce('已重骰計分卡並重新判定反轉。');
+  announce('已重骰計分卡，請按抽取反轉卡。');
 }
 function clearReroll(round) {
   delete round.rerollId;
   delete round.rerollVersion;
   delete round.rerollReversalId;
+  delete round.rerollRevealed;
 }
 const storedResults = results => results.map(row=>({...row,value:Number.isFinite(row.value)?row.value:null}));
 function recordDraw(before,after,oldCardId,cardId) {
@@ -643,6 +659,7 @@ function recordDraw(before,after,oldCardId,cardId) {
   state.drawn[after]=[...new Set([...(state.drawn[after]||[]),cardId])];
 }
 function commitRound(round,current,selection=round) {
+  if(!reversalRevealed(selection)) return false;
   const results=calculate(selection,current);
   if(!results.length) return false;
   const matchChanged=round.saved&&JSON.stringify(round.match)!==JSON.stringify(current);
@@ -672,12 +689,13 @@ function commitRound(round,current,selection=round) {
   round.results=storedResults(results);
   round.tried=selection.tried;
   clearReroll(round);
+  round.revealed=true;
   round.saved=true;
   return true;
 }
 function save() {
   const round=activeRound();
-  if(!round?.revealed||!signed()) return;
+  if(!round||!reversalRevealed(round)||!signed()) return;
   const updated=round.saved;
   if(!commitRound(round,match)){
     const message=document.querySelector('#review-error');
@@ -707,11 +725,10 @@ function startAdditionalScore() {
   const eligible=eligibleCards(source.match,source.overviewOnly);
   const card=rerollCard(eligible,state.drawn[key]||[],tried,source.cardId) ?? eligible[0];
   if(!card) return;
-  const reversalId=drawReversal();
   additionalScores[view]={
     id:localId(),matchId:matchId(source),match:structuredClone(source.match),cardId:card.id,
-    reversalId,reversalSnapshot:roundReversal({reversalId}),scoringVersion,
-    overviewOnly:source.overviewOnly,tried:[...new Set([...tried,card.id])],revealed:true,saved:false
+    reversalId:null,reversalSnapshot:null,scoringVersion,
+    overviewOnly:source.overviewOnly,tried:[...new Set([...tried,card.id])],revealed:false,saved:false
   };
   historyMessage='';
   renderAdditionalDraw();
@@ -750,7 +767,7 @@ function editHistoryRound(rerolling) {
   render(rerolling?'#result-h':'#review');
   if(rerolling) {
     document.querySelector('.result-tarot')?.classList.add('flip-in');
-    announce('已重骰計分卡並重新判定反轉，請確認是否更新紀錄。');
+    announce('已重骰計分卡，請按抽取反轉卡。');
   }
 }
 function saveHistoryRound() {
@@ -786,9 +803,10 @@ root.addEventListener('click',event=>{
     draw,
     reroll,
     'cancel-reroll':()=>{clearReroll(activeRound());persist();render('#result-h');},
-    reveal:()=>{activeRound().revealed=true;persist();render('#result-h');},
+    reveal:()=>{drawReversalFor(activeRound());persist();render('#result-h');},
     save,
     'additional-start':startAdditionalScore,
+    'additional-reveal':()=>{drawReversalFor(additionalScores[route()]);render('#result-h');},
     'additional-reroll':()=>{
       const round=additionalScores[route()];
       if(round&&chooseReroll(round,round.match)) renderAdditionalDraw();
@@ -809,6 +827,7 @@ root.addEventListener('click',event=>{
     },
     'history-edit':()=>editHistoryRound(false),
     'history-reroll':()=>editHistoryRound(true),
+    'history-reveal':()=>{drawReversalFor(historyDraft);render('#result-h');},
     'history-save':saveHistoryRound,
     'history-cancel':()=>{
       const action=historyDraft?.rerollId?'history-reroll':'history-edit';
