@@ -1,7 +1,7 @@
 import {players, fields, groups, groupNames, categoryNames, cards, reversals, dateInTaipei, fmt, eligibleCards,
-  availableCards, drawRound, drawReversal, rerollCard, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=field-er-death-share';
+  availableCards, drawRound, drawReversal, rerollCard, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=reversal-scope';
 import {recognizeBatch} from './ocr.mjs?v=played-heroes';
-import {tarotArt} from './tarot.mjs?v=survival-redesign';
+import {tarotArt} from './tarot.mjs?v=team-double-redesign';
 
 const icons = {
   upload:'<path d="M12 16V4m-4 4 4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/>',
@@ -227,11 +227,12 @@ function reversalNotice(round,reversal,results,currentMatch,preview) {
       .filter(item=>item.match.example===Boolean(currentMatch.example));
     const current = {...round, match:currentMatch, results, saved:true, reversalId:reversal.id, reversalSnapshot:reversal};
     const awards = settleDay([...prior,current],currentMatch.date).bonusesByRound.get(round.id) ?? [];
-    const label = preview ? '確認入帳時加分' : '當日總榜加分';
+    const label = preview ? '確認入帳時的當日總榜加分' : '當日總榜加分';
     if(awards.length) bonuses = `<p class="reversal-bonuses">${label} · ${awards.map(({name,bonus})=>`${esc(name)} +${fmt(bonus)}`).join('、')}</p>`;
   }
 
-  return `<div class="reversal tarot-reversal tarot-reversal-note">${tarotArt(reversal.id)}<div><p>反轉牌 · <strong>${esc(reversal.name)}</strong><br>${esc(reversal.description)}</p>${bonuses}</div></div>`;
+  const scope = reversal.dailyBonuses ? '影響當日總榜' : '影響當局積分';
+  return `<div class="reversal tarot-reversal tarot-reversal-note">${tarotArt(reversal.id)}<div><p>反轉牌 · <strong>${esc(reversal.name)}</strong><br><strong>${scope}</strong><br>${esc(reversal.description)}</p>${bonuses}</div></div>`;
 }
 function resultPanel(round,card,currentMatch,results,actions,preview,scoreLabel='') {
     const reversal=selectedReversal(round);
@@ -415,7 +416,7 @@ function tarotEntry(item, category) {
   const rule = item.rule ?? item.description;
   const points = item.dailyBonuses
     ? '總榜並列者平分占用名次的加分。'
-    : `第 1 到第 5 名依序得 ${item.points?.join('／') ?? '5／4／3／2／1'} 分。並列者平分占用名次的分數。`;
+    : `${category==='reversal'?'當局原始第 ':'第 '}1 到第 5 名依序得 ${item.points?.join('／') ?? '5／4／3／2／1'} 分。並列者平分占用名次的分數。`;
   return `<article class="tarot-entry" aria-label="${esc(type)}">
     <div class="deck-flipper">
       <div class="deck-faces">
@@ -425,6 +426,7 @@ function tarotEntry(item, category) {
         </div>
         <div class="tarot-frame deck-back tarot-${esc(category)}" id="${backId}" aria-hidden="true">
           <strong class="deck-back-title">${name}</strong>
+          ${category==='reversal'?`<span class="reversal-scope">${item.dailyBonuses?'影響當日總榜':'影響當局積分'}</span>`:''}
           ${item.punch?`<p class="deck-back-punch">${esc(item.punch)}</p>`:''}
           <span class="deck-back-label">評分標準</span>
           <p class="deck-back-rule">${esc(rule)}</p>

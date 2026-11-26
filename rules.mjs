@@ -23,7 +23,7 @@ export const categoryNames = { skill: '實力卡', fun: '趣味卡', chaos: '混
 export const dateInTaipei = () => new Intl.DateTimeFormat('sv-SE', {timeZone: 'Asia/Taipei'}).format(new Date());
 const number = new Intl.NumberFormat('zh-TW', {maximumFractionDigits: 2});
 export const fmt = value => Number.isFinite(value) ? number.format(value) : '—';
-export const scoringVersion = 4;
+export const scoringVersion = 5;
 
 function card(id, category, name, rule, fields, unit, measure, direction = 1, punch = '', tieBreak) {
   return {id, category, name, rule, fields: fields.split(' '), unit, measure, direction, punch, tieBreak};
@@ -75,12 +75,13 @@ export const cards = [
   },1,'按你打的傷害，這場多收了幾顆頭？'),
   card('miracle','fun','經濟奇蹟','輸出占比 − 經濟占比，差值越高越前。','damage gold',' 個百分點',(p,r)=>share(p,r,'damage')-share(p,r,'gold'),1,'領的是小資預算，打出來的是大哥傷害。'),
   card('broke','fun','沒錢也能扛','承傷占比 − 經濟占比，差值越高越前。','taken gold',' 個百分點',(p,r)=>share(p,r,'taken')-share(p,r,'gold'),1,'隊上沒給多少預算，對面倒是給足了傷害。'),
+  card('budget-clinic','fun','平價診所','治療占比 − 經濟占比，差值越高越前。全隊治療量為 0 時，治療占比以 0 計。','heal gold',' 個百分點',(p,r)=>share(p,r,'heal')-share(p,r,'gold'),1,'診所預算不多，補血服務卻沒有在打折。'),
   card('vampire','fun','吸血鬼','對英雄傷害占比 × 治療占比，再開平方根。數值越高越前。','damage heal','%',(p,r)=>Math.sqrt(share(p,r,'damage')*share(p,r,'heal')),1,'一邊打人，一邊補血，戰績表上兩邊都要有。'),
   card('one-cut','fun','廉價勞工','助攻減擊殺，差值越大越前。','assists kills','',p=>p.assists-p.kills,1,'團戰出勤全勤，人頭獎金都發給別人。'),
   card('survival','fun','極限求生','（擊殺＋助攻）÷（死亡＋1），數值越高越前。','kills assists deaths',' 次',p=>(p.kills+p.assists)/(p.deaths+1),1,'團戰要有你的份，陣亡名單能少一筆是一筆。'),
   card('all-damage','fun','傷害都我打','對英雄傷害 ÷（擊殺＋1），數值越高越前。','kills damage','',p=>p.damage/(p.kills+1),1,'傷害打滿，頭都沒了。'),
   card('charity','chaos','慈善事業家','死亡最多者優先。','deaths',' 次',p=>p.deaths,1,'對面的經濟，有一部分是你贊助的。'),
-  card('poor','chaos','窮得只剩技術','總經濟最低者優先。','gold','',p=>p.gold,-1,'打開裝備商店，最富有的東西是願望清單。'),
+  card('poor','fun','窮得只剩技術','（輸出占比＋承傷占比＋治療占比）÷ 3 − 經濟占比，差值越高越前。全隊某項數值為 0 時，該項占比以 0 計。','damage taken heal gold',' 個百分點',(p,r)=>(share(p,r,'damage')+share(p,r,'taken')+share(p,r,'heal'))/3-share(p,r,'gold'),1,'經濟不多，輸出、承傷和治療還是努力貢獻。'),
   card('destiny','chaos','命中注定','死亡次數最接近 3 的人優先。','deaths',' 次差距',p=>Math.abs(p.deaths-3),-1,'死神的幸運數字是 3，少死或多死都差一點。'),
   card('mean','chaos','中庸之道','輸出占比最接近 20% 的人優先。','damage',' 個百分點差距',(p,r)=>Math.abs(share(p,r,'damage')-20),-1,'全隊輸出切五份，誰打得最剛好？'),
   card('balance','fun','陰陽平衡','輸出占比與承傷占比差距最小者優先。','damage taken',' 個百分點差距',(p,r)=>Math.abs(share(p,r,'damage')-share(p,r,'taken')),-1,'把輸出和挨打的占比放上天平，誰最不偏心？'),
@@ -139,22 +140,26 @@ const version3Rules = {
     fields:['heal','taken'],unit:'%',measure:(p,r)=>Math.min(share(p,r,'heal'),share(p,r,'taken')),punch:'比誰一邊扛得住，一邊還有餘力救人。'}
 };
 
+const version4Rules = {
+  poor:{category:'chaos',rule:'總經濟最低者優先。',fields:['gold'],unit:'',measure:p=>p.gold,direction:-1,punch:'打開裝備商店，最富有的東西是願望清單。'}
+};
+
 function findCard(id,version) {
   if(id===legacyLastHit.id) return legacyLastHit;
   const current=id===retiredBoth.id ? retiredBoth : cards.find(item=>item.id===id);
   if(!current || version>=scoringVersion) return current;
-  return {...current,...version3Rules[id],...(version<=2?version2Rules[id]:null),...(version===1?previousRules[id]:null)};
+  return {...current,...version4Rules[id],...(version<=3?version3Rules[id]:null),...(version<=2?version2Rules[id]:null),...(version===1?previousRules[id]:null)};
 }
 
 const basePoints = [5,4,3,2,1];
 
 export const reversals = [
-  {id:'chosen',name:'天選之人',points:[2,4,5,3,1], description:'原始第三名，現在拿下最高分。', punch:'前兩名還在比誰強，第三名已經被叫去領獎。'},
-  {id:'reverse',name:'命運逆轉',points:[1,2,3,4,5], description:'原始積分順序整張翻過來。', punch:'排行榜倒著念，原本墊底的人突然站上第一。'},
-  {id:'swap',name:'首尾互換',points:[1,4,3,2,5], description:'第一、第五互換，其他名次照原分。', punch:'第一名跟最後一名換座位，中間三位請坐好。'},
-  {id:'team-double',name:'全隊加倍',points:basePoints.map(points=>points*2), description:'五人的本局基本分都乘以 2。', punch:'全隊都抽中雙倍券，這場每個人都領兩份。'},
-  {id:'big-comeback',name:'大翻盤',dailyBonuses:[0,0,0,2,3], description:'本局基本分入帳後，當日總榜第 5 名加 3 分，第 4 名加 2 分。', punch:'總榜後段收到追分券，前排先別急著慶祝。'},
-  {id:'small-comeback',name:'小翻盤',points:[5,4,3,3,3], description:'本局第 5 名加 2 分，第 4 名加 1 分。', punch:'這局後兩名有安慰獎，越後面補得越多。'}
+  {id:'chosen',name:'天選之人',points:[2,4,5,3,1], description:'當局原始第 3 名拿下當局最高分。', punch:'前兩名還在比誰強，第三名已經被叫去領獎。'},
+  {id:'reverse',name:'命運逆轉',points:[1,2,3,4,5], description:'當局的積分順序整張翻過來。', punch:'排行榜倒著念，原本墊底的人突然站上第一。'},
+  {id:'swap',name:'首尾互換',points:[1,4,3,2,5], description:'當局第 1 名和第 5 名交換分數，其他名次照原分。', punch:'第一名跟最後一名換座位，中間三位請坐好。'},
+  {id:'team-double',name:'全隊加倍',points:basePoints.map(points=>points*2), description:'五人的當局基本分都乘以 2。', punch:'全隊都抽中雙倍券，這場每個人都領兩份。'},
+  {id:'big-comeback',name:'大翻盤',dailyBonuses:[0,0,0,2,3], description:'當局基本分入帳後，當日累積總榜第 5 名加 3 分，第 4 名加 2 分。', punch:'總榜後段收到追分券，前排先別急著慶祝。'},
+  {id:'small-comeback',name:'小翻盤',points:[5,4,3,3,3], description:'當局第 5 名加 2 分，第 4 名加 1 分。', punch:'這局後兩名有安慰獎，越後面補得越多。'}
 ];
 
 const hasCardData = (item,match,overviewOnly=false) => item.fields.every(field =>
