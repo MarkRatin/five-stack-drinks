@@ -138,13 +138,14 @@ progress::-moz-progress-bar{background:var(--wine)}
 
 /* Tarot illustrations use twelve independently positioned emblems per sheet. */
 .tarot-art{display:block;width:100%;aspect-ratio:1;background-color:#f4e7cd;background-repeat:no-repeat;background-size:300% 400%;background-position:var(--art-x) var(--art-y)}
-.atlas-1{background-image:url("art/tarot-1.jpg")}
-.atlas-2{background-image:url("art/tarot-2.jpg")}
-.atlas-3{background-image:url("art/tarot-3.jpg")}
+.atlas-1{background-image:url("art/tarot-1.jpg?v=engraving")}
+.atlas-2{background-image:url("art/tarot-2.jpg?v=engraving")}
+.atlas-3{background-image:url("art/tarot-3.jpg?v=engraving")}
 .atlas-4{background-image:url("art/tarot-4.jpg");background-size:200% 200%}
 .atlas-5{background-image:url("art/tarot-5.jpg");background-size:300% 200%}
 .atlas-6{background-image:url("art/tarot-6.jpg");background-size:200% 200%}
 .atlas-7{background-image:url("art/tarot-7.jpg");background-size:200% 200%}
+.atlas-survival{background-image:url("art/survival-redesign.jpg");background-size:100% 100%;background-position:center}
 .tarot-frame{--plate:#f4e7cd;--ornament:#844a32;--plate-ink:#483024;position:relative;isolation:isolate;overflow:hidden;border:1px solid var(--ornament);border-radius:13px;padding:11px 11px 10px;background:var(--plate);color:var(--plate-ink)}
 .tarot-frame::after{content:"";position:absolute;inset:5px;z-index:1;border:1px solid var(--ornament);border-radius:8px;opacity:.66;pointer-events:none}
 .tarot-frame .tarot-art{border:1px solid color-mix(in srgb,var(--ornament) 52%,transparent);border-radius:5px}
@@ -156,7 +157,7 @@ progress::-moz-progress-bar{background:var(--wine)}
 .tarot-caption h2,.deck-back-title,.result-intro-copy h2{font-family:"Iansui","Kaiti TC","DFKai-SB",var(--serif);font-weight:400;letter-spacing:.045em;overflow-wrap:anywhere}
 .tarot-caption h2{font-size:1.45rem;line-height:1.26;text-wrap:balance}
 .tarot-entry{min-width:0}
-.deck-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px 16px}
+.deck-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:1fr;gap:24px 16px}
 .result-intro{display:grid;grid-template-columns:minmax(90px,132px) minmax(0,1fr);gap:18px;align-items:center;margin-bottom:12px;perspective:600px}
 .result-tarot{padding:10px;aspect-ratio:4/5;display:grid;align-items:center;transform-origin:center center}
 .result-intro-copy h2{font-size:clamp(1.4rem,4.4vw,2rem);line-height:1.2;margin:4px 0 6px}
@@ -210,8 +211,8 @@ progress::-moz-progress-bar{background:var(--wine)}
 @media(max-width:880px){.match-stats{padding-inline:13px}}
 @media(max-width:390px){.match-stats th,.match-stats td{padding-inline:2px}}
 
-.deck-flipper{position:relative;perspective:900px}
-.deck-faces{display:grid;transform-style:preserve-3d;transition:transform .34s cubic-bezier(.23,.81,.26,1)}
+.deck-flipper{position:relative;perspective:900px;height:100%}
+.deck-faces{display:grid;height:100%;transform-style:preserve-3d;transition:transform .34s cubic-bezier(.23,.81,.26,1)}
 .deck-faces > .tarot-frame{grid-area:1/1;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .deck-flipper.is-flipped .deck-faces{transform:rotateY(180deg)}
 .deck-back{display:grid;align-content:center;gap:7px;padding:20px 16px;transform:rotateY(180deg)}

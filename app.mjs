@@ -1,7 +1,7 @@
 import {players, fields, groups, groupNames, categoryNames, cards, reversals, dateInTaipei, fmt, eligibleCards,
   availableCards, drawRound, drawReversal, rerollCard, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=field-er-death-share';
 import {recognizeBatch} from './ocr.mjs?v=played-heroes';
-import {tarotArt} from './tarot.mjs?v=scoring-art-redraw';
+import {tarotArt} from './tarot.mjs?v=survival-redesign';
 
 const icons = {
   upload:'<path d="M12 16V4m-4 4 4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/>',

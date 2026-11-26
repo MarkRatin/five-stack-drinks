@@ -44,6 +44,7 @@ export const tarotArtwork = Object.fromEntries(atlases.flatMap((rows, sheet) =>
 ));
 
 export function tarotArt(id, className = '') {
+  if (id === 'survival') return `<span class="tarot-art atlas-survival ${className}" aria-hidden="true"></span>`;
   const {sheet,x,y,columns,rows} = tarotArtwork[id==='last-hit'?'last-hit-share':id] ?? tarotArtwork.back;
   return `<span class="tarot-art atlas-${sheet} ${className}" style="--art-x:${100*x/(columns-1)}%;--art-y:${100*y/(rows-1)}%" aria-hidden="true"></span>`;
 }
