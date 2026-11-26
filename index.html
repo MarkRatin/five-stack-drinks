@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#fbf7ed">
+  <meta name="description" content="五排戰績截圖、翻牌計分及每日排行榜。">
+  <title>五排飲料局</title>
+  <link rel="icon" href="mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css?v=multiple-scores">
+  <script type="module" src="app.mjs?v=multiple-scores"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <a class="brand" href="#play" aria-label="五排飲料局，回到本局">
+        <img src="mark.svg" alt="" width="34" height="34"> 五排飲料局
+      </a>
+      <nav aria-label="網站導覽">
+        <a href="#play" data-view="play">本局</a>
+        <a href="#history" data-view="history">歷史</a>
+        <a href="#deck" data-view="deck">牌庫</a>
+      </nav>
+      <span class="local"><i></i> 本機試玩</span>
+    </div>
+  </header>
+  <main class="wrap">
+    <div id="view"></div>
+    <div id="announce" class="sr-only" role="status"></div>
+    <noscript>請開啟 JavaScript 以辨識戰績和計分。</noscript>
+  </main>
+  <footer class="wrap foot">
+    <span>五排飲料局</span><span>截圖於本機處理 · 試玩紀錄保存在目前瀏覽器</span>
+  </footer>
+</body>
+</html>
