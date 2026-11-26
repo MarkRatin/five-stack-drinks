@@ -1,7 +1,7 @@
 import {players, fields, groups, groupNames, categoryNames, cards, reversals, dateInTaipei, fmt, eligibleCards,
-  availableCards, drawRound, drawReversal, rerollCard, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=manual-reversal';
+  availableCards, drawRound, drawReversal, rerollCard, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=first-loser';
 import {recognizeBatch} from './ocr.mjs?v=played-heroes';
-import {tarotArt} from './tarot.mjs?v=team-double-redesign';
+import {tarotArt} from './tarot.mjs?v=first-loser';
 
 const icons = {
   upload:'<path d="M12 16V4m-4 4 4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/>',
@@ -228,8 +228,8 @@ function reversalNotice(round,reversal,results,currentMatch,preview) {
       .filter(item=>item.match.example===Boolean(currentMatch.example));
     const current = {...round, match:currentMatch, results, saved:true, reversalId:reversal.id, reversalSnapshot:reversal};
     const awards = settleDay([...prior,current],currentMatch.date).bonusesByRound.get(round.id) ?? [];
-    const label = preview ? '確認入帳時的當日總榜加分' : '當日總榜加分';
-    if(awards.length) bonuses = `<p class="reversal-bonuses">${label} · ${awards.map(({name,bonus})=>`${esc(name)} +${fmt(bonus)}`).join('、')}</p>`;
+    const label = preview ? '確認入帳時的當日總榜調整' : '當日總榜調整';
+    if(awards.length) bonuses = `<p class="reversal-bonuses">${label} · ${awards.map(({name,bonus})=>`${esc(name)} ${bonus>0?'+':''}${fmt(bonus)} 分`).join('、')}</p>`;
   }
 
   const scope = reversal.dailyBonuses ? '影響當日總榜' : '影響當局積分';
@@ -350,7 +350,7 @@ function play() {
     </div><aside class="stack">${scorePanel(day())}
     ${matchStatsPanel()}
     <section class="panel pad rules-inline"><details><summary>計分規則</summary><ul>
-    <li>三張圖開完整牌池，也可選擇只用總覽。</li><li>同分者平分名次積分，每次計分的基本分合計 15。</li><li>每次抽牌都有 10% 機率抽到一張反轉卡。大翻盤在這筆基本分入帳後調整當日總榜。</li>
+    <li>三張圖開完整牌池，也可選擇只用總覽。</li><li>同分者平分名次積分，每次計分的基本分合計 15。</li><li>每次抽牌都有 10% 機率抽到一張反轉卡。影響當日總榜的反轉卡在這筆基本分入帳後生效。</li>
     </ul></details><a class="quick" href="#deck">${icon('book')} 查看 ${cards.length+reversals.length} 張牌的規則</a></section>
     </aside></div>`;
 }
@@ -416,7 +416,7 @@ function tarotEntry(item, category) {
   const backId=`deck-rule-${esc(item.id)}`;
   const rule = item.rule ?? item.description;
   const points = item.dailyBonuses
-    ? '總榜並列者平分占用名次的加分。'
+    ? '總榜並列者平分占用名次的加分或扣分。'
     : `${category==='reversal'?'當局原始第 ':'第 '}1 到第 5 名依序得 ${item.points?.join('／') ?? '5／4／3／2／1'} 分。並列者平分占用名次的分數。`;
   return `<article class="tarot-entry" aria-label="${esc(type)}">
     <div class="deck-flipper">
@@ -452,7 +452,7 @@ function deck() {
     skill:'直接比單項表現，像是輸出、承傷或助攻。',
     fun:'把幾項戰績放進公式，算出這場誰最符合卡名。',
     chaos:'看一個戰績數字，比一個好笑的條件。像是誰的經濟末兩碼最接近 88。',
-    reversal:'計分後生效，可能改變這局的分數，或替當日總榜加分。'
+    reversal:'計分後生效，可能改變這局的分數，或調整當日總榜積分。'
   };
   const which=cards.filter(item=>deckFilter==='all'||deckFilter===item.category);
   const possible=deckFilter==='all'||deckFilter==='reversal'?reversals:[];

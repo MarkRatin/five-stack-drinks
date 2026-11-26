@@ -47,6 +47,7 @@ export function tarotArt(id, className = '') {
   if (id === 'survival') return `<span class="tarot-art atlas-survival ${className}" aria-hidden="true"></span>`;
   if (id === 'budget-clinic') return `<span class="tarot-art atlas-budget-clinic ${className}" aria-hidden="true"></span>`;
   if (id === 'team-double') return `<span class="tarot-art atlas-team-double ${className}" aria-hidden="true"></span>`;
+  if (id === 'first-loser') return `<span class="tarot-art atlas-first-loser ${className}" aria-hidden="true"></span>`;
   const {sheet,x,y,columns,rows} = tarotArtwork[id==='last-hit'?'last-hit-share':id] ?? tarotArtwork.back;
   return `<span class="tarot-art atlas-${sheet} ${className}" style="--art-x:${100*x/(columns-1)}%;--art-y:${100*y/(rows-1)}%" aria-hidden="true"></span>`;
 }
