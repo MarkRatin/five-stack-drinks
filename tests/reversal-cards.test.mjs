@@ -84,8 +84,9 @@ test('反轉快照經序列化後仍可重算，舊反轉牌的配分不變',()=
   assert.deepEqual(settleCard(match({count:4}),'small-comeback').map(row=>row.final),[4,3,3,3]);
 });
 
-test('反轉卡觸發機率維持 20%，新卡都可被抽中',()=>{
-  assert.equal(drawReversal(()=>0.2),null);
+test('反轉卡觸發機率為 50%，新卡都可被抽中',()=>{
+  assert.notEqual(drawReversal(()=>0.499999),null);
+  assert.equal(drawReversal(()=>0.5),null);
   for (const id of ['leader-tax','good-deeds','even-number-pickup']) {
     const index=reversals.findIndex(card=>card.id===id);
     let count=0;

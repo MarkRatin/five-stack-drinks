@@ -206,7 +206,8 @@ const hasCardData = (item,match,overviewOnly=false) => item.fields.every(field =
 export const eligibleCards = (match, overviewOnly = false) => cards.filter(item=>hasCardData(item,match,overviewOnly));
 
 const choose = (array, random) => array[Math.floor(random() * array.length)];
-export const drawReversal = (random = Math.random) => random() < 0.2 ? choose(reversals, random).id : null;
+export const reversalChance = 0.5;
+export const drawReversal = (random = Math.random) => random() < reversalChance ? choose(reversals, random).id : null;
 
 export function cardDetails(id,version=scoringVersion) {
   const card = findCard(id,version);
