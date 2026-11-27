@@ -377,6 +377,11 @@ html:has(.draw-ritual[open]) { overflow: hidden; }
   font: var(--display-weight) 25px/1.25 var(--serif);
   text-wrap: balance;
 }
+.draw-ritual-card-revealed .draw-ritual-copy h2 {
+  font-family: var(--card-title);
+  font-weight: 400;
+  letter-spacing: .045em;
+}
 .draw-ritual-copy p {
   color: #e6cdb8;
   font-size: 14px;

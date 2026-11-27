@@ -219,6 +219,7 @@ export function animateReversalDraw(draw, complete) {
     ? `<div class="tarot-frame tarot-reversal draw-ritual-card">${tarotArt(reversal.id)}<div class="tarot-caption"><strong>${reversal.name}</strong></div></div>`
     : '<div class="draw-ritual-card reversal-blank"><strong>命運平靜</strong><span>這次沒有反轉</span></div>';
   function reveal() {
+    if (reversal) dialog.classList.add('draw-ritual-card-revealed');
     display.innerHTML = face;
     update(reversal?.name ?? '這次沒有觸發反轉', reversal?.description ?? '保留計分卡的當局結果。', '返回結算', finish);
   }
