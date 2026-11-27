@@ -1,8 +1,8 @@
 import {players, fields, groups, groupNames, categoryNames, cards, reversals, dateInTaipei, fmt, eligibleCards,
-  availableCards, drawRound, drawReversal, rerollPool, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=empty-promise';
+  availableCards, drawRound, drawReversal, rerollPool, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=empty-promise-name';
 import {recognizeBatch} from './ocr.mjs?v=played-heroes';
 import {tarotArt} from './tarot.mjs?v=empty-promise';
-import {animateScoreDraw, animateReversalDraw, closeDrawAnimation} from './draw/ritual.mjs?v=empty-promise';
+import {animateScoreDraw, animateReversalDraw, closeDrawAnimation} from './draw/ritual.mjs?v=empty-promise-name';
 
 const icons = {
   upload:'<path d="M12 16V4m-4 4 4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/>',
