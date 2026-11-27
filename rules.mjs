@@ -25,6 +25,8 @@ const number = new Intl.NumberFormat('zh-TW', {maximumFractionDigits: 2});
 export const fmt = value => Number.isFinite(value) ? number.format(value) : '—';
 export const scoringVersion = 5;
 
+export const scoringRows = match => match.rows.filter(row => !match.scoringIds || match.scoringIds.includes(row.id));
+
 function card(id, category, name, rule, fields, unit, measure, direction = 1, punch = '', tieBreak) {
   return {id, category, name, rule, fields: fields.split(' '), unit, measure, direction, punch, tieBreak};
 }
@@ -211,14 +213,22 @@ export function settle(match, cardId, reversalId, reversalSnapshot,version=scori
   const item = findCard(cardId,version);
   const reversal = reversalSnapshot ?? reversals.find(card => card.id === reversalId);
   if (!item || !hasCardData(item,match)) return [];
-  const results = match.rows.map(row=>({id:row.id,name:row.name,value:rounded(item.measure(row,match.rows,match)),tie:item.tieBreak?.(row) ?? 0}))
+  const participants = scoringRows(match);
+  const points = Array.from({length:participants.length}, (_, index) => participants.length - index);
+  let reversalPoints = reversal?.points;
+  if (participants.length === 4 && reversal?.id) {
+    const variants = {chosen:[1,3,4,2],reverse:[1,2,3,4],swap:[1,3,2,4],
+      'team-double':[8,6,4,2],'empty-promise':[0,0,0,0],'small-comeback':[4,3,3,3]};
+    reversalPoints = variants[reversal.id] ?? reversalPoints;
+  }
+  const results = participants.map(row=>({id:row.id,name:row.name,value:rounded(item.measure(row,match.rows,match)),tie:item.tieBreak?.(row) ?? 0}))
     .sort((a,b)=>a.value===b.value ? b.tie-a.tie : (b.value-a.value)*item.direction);
   let start = 0;
   while (start < results.length) {
     let end = start + 1;
     while (end < results.length && results[end].value===results[start].value && results[end].tie===results[start].tie) end++;
-    const base = average(basePoints, start, end);
-    const final = reversal?.points ? average(reversal.points, start, end) : base;
+    const base = average(points, start, end);
+    const final = reversalPoints ? average(reversalPoints, start, end) : base;
     for (const entry of results.slice(start,end)) Object.assign(entry, {rank:start+1,base,final});
     start = end;
   }
@@ -238,9 +248,13 @@ export function settleDay(rounds, date) {
   const bonusesByRound = new Map();
   if (!games.length) return {totals:[],bonusesByRound};
 
-  const totals = Object.fromEntries(players.map(player => [player.id, {...player, total:0}]));
+  const totals = {};
   for (const round of games) {
     const results = recordedResults(round);
+    for (const result of results) {
+      const player = players.find(item => item.id === result.id);
+      if (player && !totals[player.id]) totals[player.id] = {...player, total:0};
+    }
     for (const result of results) {
       if (totals[result.id]) totals[result.id].total += result.final;
     }
@@ -254,7 +268,10 @@ export function settleDay(rounds, date) {
     while (start < ranking.length) {
       let end = start + 1;
       while (end < ranking.length && ranking[end].total===ranking[start].total) end++;
-      const bonus = average(reversal.dailyBonuses,start,end);
+      const bonuses = reversal.id === 'big-comeback' && round.match.scoringIds
+        ? ranking.map((_, index) => index === ranking.length - 1 ? 3 : index === ranking.length - 2 ? 2 : 0)
+        : reversal.dailyBonuses;
+      const bonus = average(bonuses,start,end);
       if (bonus !== 0) {
         for (const {id,name} of ranking.slice(start,end)) {
           totals[id].total += bonus;

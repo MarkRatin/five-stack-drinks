@@ -288,3 +288,6 @@ progress::-moz-progress-bar{background:var(--wine)}
 }
 
 .points,.hero-meta,.score-date,.result-row .detail,.match-stats td{font-variant-numeric:tabular-nums lining-nums}
+
+.participant-check{display:flex;align-items:center;gap:8px;margin:10px 0;color:var(--ink);font-size:14px;font-weight:650}
+.participant-check input{width:18px;height:18px;accent-color:var(--wine)}

@@ -1,8 +1,8 @@
 import {players, fields, groups, groupNames, categoryNames, cards, reversals, dateInTaipei, fmt, eligibleCards,
-  availableCards, drawRound, drawReversal, rerollPool, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=reversal-20';
+  availableCards, drawRound, drawReversal, rerollPool, scoringRows, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=four-players';
 import {recognizeBatch} from './ocr.mjs?v=played-heroes';
 import {tarotArt} from './tarot.mjs?v=empty-promise';
-import {animateScoreDraw, animateReversalDraw, closeDrawAnimation} from './draw/ritual.mjs?v=reversal-20';
+import {animateScoreDraw, animateReversalDraw, closeDrawAnimation} from './draw/ritual.mjs?v=four-players';
 
 const icons = {
   upload:'<path d="M12 16V4m-4 4 4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/>',
@@ -117,7 +117,9 @@ function matchSignature(value) {
 
 function validMatch(value) {
   const base = groups.overview.every(key=>value.rows.every(row=>Number.isFinite(row[key])&&row[key]>=0));
-  const completeRoster = new Set(value.rows.map(row=>row.id)).size===5;
+  const selected = scoringRows(value);
+  const completeRoster = [4,5].includes(selected.length) &&
+    new Set(selected.map(row=>row.id)).size === selected.length;
   const teamKills = value.rows.reduce((sum,row)=>sum+(row.kills || 0),0);
   return base && completeRoster && /^\d{4}-\d\d-\d\d$/.test(value.date) &&
     Number.isInteger(value.teamKills) && value.teamKills===teamKills &&
@@ -126,7 +128,8 @@ function validMatch(value) {
 function issues(current = match) {
   if(!current) return '';
   if(!current.date) return '請確認對局日期。';
-  if(new Set(current.rows.map(row=>row.id)).size!==5) return '請讓五列各對應一位不同的玩家。';
+  if(![4,5].includes(scoringRows(current).length)) return '請勾選本局參與計分的四位或五位玩家。';
+  if(new Set(scoringRows(current).map(row=>row.id)).size!==scoringRows(current).length) return '參與計分的玩家不能重複。';
   if(!groups.overview.every(key=>current.rows.every(row=>Number.isFinite(row[key])&&row[key]>=0))) return '請補齊五位玩家的總覽數字。';
   const sum = current.rows.reduce((total,row)=>total+row.kills,0);
   if(!Number.isInteger(current.teamKills)||sum!==current.teamKills) return `五人擊殺合計 ${sum}，請與畫面上的全隊擊殺核對。`;
@@ -143,10 +146,10 @@ function scorePanel(date, example=Boolean(match?.example)) {
   const last=ranking.length ? ranking.filter(p=>p.total===ranking.at(-1).total) : [];
   const agreed=last.find(row=>row.id===state.tiebreak[scoreKey]);
   const current=date===today();
-  const summary=!ranking.length?'入帳後，這裡會更新五人的累積分。'
+  const summary=!ranking.length?'入帳後，這裡會更新當日成員的累積分。'
     : last.length>1 && !agreed ? '並列墊底 · 待加賽'
       : `${current?'目前飲料贊助商':'飲料贊助商'} · ${(agreed || last[0]).name}`;
-  const rows=ranking.length?ranking:players;
+  const rows=ranking.length?ranking:(match?.date===date ? scoringRows(match) : players);
   return `<section class="panel" aria-labelledby="score-heading">
     <div class="score-head"><div class="panel-head"><div><h2 id="score-heading">${example?'範例排行榜':current?'今日排行榜':'當日排行榜'}</h2><p>已入帳 ${count}${example?' · 試玩範例':''}</p></div><span class="score-date">${esc(show(date))}</span></div></div>
     <ol class="score-list">${rows.map((p,i)=>`<li><span class="rank">${ranking.length ? 1+rows.filter(row=>row.total>p.total).length : String(i+1).padStart(2,'0')}</span><span class="initial ${p.color}" aria-hidden="true">${esc(p.name[0])}</span><span class="score-label">${esc(p.name)}</span><span class="points">${ranking.length?fmt(p.total):'—'}</span></li>`).join('')}</ol>
@@ -178,7 +181,7 @@ function matchStatsPanel(current=match, group=matchStatsGroup, historical=false)
     </div>
     ${hasValues ? `<table aria-label="${groupNames[group]}戰績">
       <thead><tr><th scope="col">玩家</th>${metrics.map(([label])=>`<th scope="col">${label}</th>`).join('')}</tr></thead>
-      <tbody>${readouts.map(({row,values})=>`<tr><th scope="row"><span class="match-stats-name">${esc(row.name)}</span>${row.hero?`<span class="played-hero">${esc(row.hero)}</span>`:''}</th>${values.map(value=>`<td>${esc(showStat(value))}</td>`).join('')}</tr>`).join('')}</tbody>
+      <tbody>${readouts.map(({row,values})=>`<tr><th scope="row"><span class="match-stats-name">${esc(current.scoringIds && !current.scoringIds.includes(row.id) ? '非計分玩家' : row.name)}</span>${row.hero?`<span class="played-hero">${esc(row.hero)}</span>`:''}</th>${values.map(value=>`<td>${esc(showStat(value))}</td>`).join('')}</tr>`).join('')}</tbody>
     </table>` : `<p class="match-stats-empty">這局尚未記錄${groupNames[group]}資料。</p>`}
   </section>`;
 }
@@ -218,6 +221,19 @@ function lastHitMetric(result,player,current) {
   const difference=`${result.value>0?'+':''}${fmt(result.value)} 顆`;
   return baseline===null ? difference : `${difference}<small class="metric-baseline">${fmt(player.kills)} 殺 · 預估 ${fmt(baseline)}</small>`;
 }
+function reversalText(reversal, currentMatch) {
+  if (!reversal || scoringRows(currentMatch).length !== 4) return reversal?.description;
+  const descriptions = {
+    chosen:'當局原始第 3 名拿下當局最高分，其餘依序得 1／3／2 分。',
+    reverse:'當局四人的積分順序倒過來，依序得 1／2／3／4 分。',
+    swap:'當局第 1 名與第 4 名交換分數，其餘照原分。',
+    'team-double':'四人的當局基本分都乘以 2。',
+    'small-comeback':'當局最後一名加 2 分，倒數第二名加 1 分。',
+    'big-comeback':'當日總榜最後一名加 3 分，倒數第二名加 2 分。',
+    'empty-promise':'這次計分四人都得 0 分。'
+  };
+  return descriptions[reversal.id] ?? reversal.description;
+}
 function reversalNotice(round,reversal,results,currentMatch,preview) {
   if(!reversalRevealed(round)) return '<p class="subtle result-no-reversal">當局基本分已算好，按「抽取反轉卡」揭曉命運。</p>';
   if(!reversal) return `<p class="subtle result-no-reversal">${round.rerollId?'這次重骰':'這次計分'}未觸發反轉。</p>`;
@@ -234,7 +250,7 @@ function reversalNotice(round,reversal,results,currentMatch,preview) {
   }
 
   const scope = reversal.dailyBonuses ? '影響當日總榜' : '影響當局積分';
-  return `<div class="reversal tarot-reversal tarot-reversal-note">${tarotArt(reversal.id)}<div><p>反轉牌 · <strong>${esc(reversal.name)}</strong><br><strong>${scope}</strong><br>${esc(reversal.description)}</p>${bonuses}</div></div>`;
+  return `<div class="reversal tarot-reversal tarot-reversal-note">${tarotArt(reversal.id)}<div><p>反轉牌 · <strong>${esc(reversal.name)}</strong><br><strong>${scope}</strong><br>${esc(reversalText(reversal,currentMatch))}</p>${bonuses}</div></div>`;
 }
 function resultPanel(round,card,currentMatch,results,actions,preview,scoreLabel='') {
     const reversal=selectedReversal(round);
@@ -288,7 +304,7 @@ function drawPanel() {
   return `<section class="panel draw-panel" aria-labelledby="draw-h">
     <div><h2 id="draw-h">翻開命運牌</h2><p>${signed() && review ? `本局可用 ${count} 張計分卡，當前可抽 ${countLeft} 張。`:'確認本局戰績後，讓牌決定這場比什麼。'}</p>
     <div class="actions">${button(`${icon('cards')} ${signed()&&review?'翻開本局計分卡':'等待戰績確認'}`,'draw','primary',(!signed()||!review||busy||!count)?'disabled':'')}</div>
-    <p class="subtle">基本分 5／4／3／2／1 · 反轉機率 20%</p></div>
+    <p class="subtle">五人 5／4／3／2／1 · 四人 4／3／2／1 · 反轉機率 20%</p></div>
     <div class="cardback" aria-hidden="true">${tarotArt('back','back-emblem')}</div>
   </section>`;
 }
@@ -317,7 +333,8 @@ function editor(current=match,historical=false) {
   const currentCard=historical||activeCard();
   const needsReview=key=>!historical&&uncertain.has(key);
   return `<section class="panel pad" id="review" tabindex="-1">
-    ${historical?panelHead('更正這局戰績','儲存後會重新計算這局的積分和當日排行榜。'):panelHead('核對五人戰績', current.example?'試玩範例 · 可直接確認並翻牌。':rosterReview?'請確認隊伍和五列玩家順序，再檢查標出的欄位。':'核對日期、全隊擊殺和辨識出的數字。')}
+    ${historical?panelHead('更正這局戰績','儲存後會重新計算這局的積分和當日排行榜。'):panelHead('核對五人戰績', current.example?'試玩範例 · 勾選本局計分成員後確認。':rosterReview?'請確認隊伍、五列玩家順序及本局計分成員，再檢查標出的欄位。':'勾選本局參與計分的四位或五位玩家，並核對全隊數據。')}
+    <p class="subtle">未勾選者不參與本局排名；五列數據仍用於全隊占比計算。</p>
     <div class="fixgrid fields-top">
       <label class="field">對局日期<input type="date" data-field="date" value="${esc(current.date)}"></label>
       <label class="field">對局時間<input type="time" data-field="time" value="${esc(current.time)}"></label>
@@ -326,9 +343,9 @@ function editor(current=match,historical=false) {
     </div>
     ${current.rows.map((row,i)=>{
       const bad=groupsToShow.some(key=>needsReview(`${i}.${key}`)||(!Number.isFinite(row[key])&&groups.overview.includes(key)));
-      return `<details class="person" data-player="${i}" ${bad?'open':''}><summary>${esc(row.name)} <span class="played-hero">${esc(row.hero||'未記錄英雄')}</span> <span>${[row.kills,row.deaths,row.assists].every(Number.isFinite)?`${row.kills}／${row.deaths}／${row.assists}`:''}</span></summary>
+      return `<div><label class="participant-check"><input type="checkbox" data-participant="${i}" ${!current.scoringIds||current.scoringIds.includes(row.id)?'checked':''}> ${esc(row.name)}參與本局計分</label><details class="person" data-player="${i}" ${bad?'open':''}><summary>${esc(row.name)} <span class="played-hero">${esc(row.hero||'未記錄英雄')}</span> <span>${[row.kills,row.deaths,row.assists].every(Number.isFinite)?`${row.kills}／${row.deaths}／${row.assists}`:''}</span></summary>
       ${!historical && rosterReview && current.detectedNames?.[i] ? `<p class="subtle">截圖辨識名稱 · ${esc(current.detectedNames[i])}</p>` : ''}
-    <div class="fixgrid"><label class="field">對應玩家<select data-field="${i}.id">${players.map(p=>`<option value="${p.id}" ${row.id===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label><label class="field">使用英雄<input type="text" data-field="${i}.hero" value="${esc(row.hero||'')}" maxlength="24" placeholder="輸入英雄名稱"></label>${groupsToShow.map(key=>numberField(fields[key],`${i}.${key}`,row[key],needsReview(`${i}.${key}`))).join('')}</div></details>`;
+    <div class="fixgrid"><label class="field">對應玩家<select data-field="${i}.id">${players.map(p=>`<option value="${p.id}" ${row.id===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label><label class="field">使用英雄<input type="text" data-field="${i}.hero" value="${esc(row.hero||'')}" maxlength="24" placeholder="輸入英雄名稱"></label>${groupsToShow.map(key=>numberField(fields[key],`${i}.${key}`,row[key],needsReview(`${i}.${key}`))).join('')}</div></details></div>`;
     }).join('')}
     <p id="review-error" class="notice" ${errorText?'':'hidden'}>${esc(errorText)}</p>
     <div class="actions">
@@ -351,7 +368,7 @@ function play() {
     </div><aside class="stack">${scorePanel(day())}
     ${matchStatsPanel()}
     <section class="panel pad rules-inline"><details><summary>計分規則</summary><ul>
-    <li>三張圖開完整牌池，也可選擇只用總覽。</li><li>同分者平分名次積分，每次計分的基本分合計 15。</li><li>每次抽牌都有 20% 機率抽到一張反轉卡。影響當日總榜的反轉卡在這筆基本分入帳後生效。</li>
+    <li>三張圖開完整牌池，也可選擇只用總覽。</li><li>五人依序得 5／4／3／2／1 分，四人依序得 4／3／2／1 分；同分者平分名次積分。</li><li>每次抽牌都有 20% 機率抽到一張反轉卡。影響當日總榜的反轉卡在這筆基本分入帳後生效。</li>
     </ul></details><a class="quick" href="#deck">${icon('book')} 查看 ${cards.length+reversals.length} 張牌的規則</a></section>
     </aside></div>`;
 }
@@ -416,9 +433,11 @@ function tarotEntry(item, category) {
   const name=esc(item.name);
   const backId=`deck-rule-${esc(item.id)}`;
   const rule = item.rule ?? item.description;
+  const fourPoints = {chosen:'1／3／4／2',reverse:'1／2／3／4',swap:'1／3／2／4',
+    'team-double':'8／6／4／2','empty-promise':'0／0／0／0','small-comeback':'4／3／3／3'};
   const points = item.dailyBonuses
-    ? '總榜並列者平分占用名次的加分或扣分。'
-    : `${category==='reversal'?'當局原始第 ':'第 '}1 到第 5 名依序得 ${item.points?.join('／') ?? '5／4／3／2／1'} 分。並列者平分占用名次的分數。`;
+    ? '總榜並列者平分占用名次的加分或扣分。四人場大翻盤由當日總榜最後兩名獲得加分。'
+    : `${category==='reversal'?'當局原始第 ':'第 '}1 到第 5 名依序得 ${item.points?.join('／') ?? '5／4／3／2／1'} 分。${category==='reversal'&&fourPoints[item.id]?`四人時依序得 ${fourPoints[item.id]} 分。`:category==='reversal'?'':'四人時依序得 4／3／2／1 分。'}並列者平分占用名次的分數。`;
   return `<article class="tarot-entry" aria-label="${esc(type)}">
     <div class="deck-flipper">
       <div class="deck-faces">
@@ -647,7 +666,7 @@ function revealReversal(round,saveDraft=false) {
       round.revealed=true;
     }
     if(saveDraft) persist();
-    return card;
+    return card ? {...card,description:reversalText(card,round.match)} : null;
   },card=>{
     render('#result-h');
     announce(card?'反轉卡已抽出。':'這次沒有觸發反轉卡。');
@@ -873,6 +892,9 @@ function applyField(input) {
   if(parts.length===1) current[field]=value;
   else {
     const row=current.rows[Number(parts[0])];
+    if(parts[1]==='id' && current.scoringIds?.includes(row.id)) {
+      current.scoringIds = current.scoringIds.map(id=>id===row.id?value:id);
+    }
     row[parts[1]]=value;
     if(parts[1]==='id') Object.assign(row,players.find(player=>player.id===value));
   }
@@ -885,6 +907,19 @@ root.addEventListener('input',event=>applyField(event.target));
 root.addEventListener('change',event=>{
   const target=event.target;
   if(target.id==='photos'){receiveFiles(target.files);return;}
+  if(target.dataset.participant!==undefined){
+    const current=route()==='history'?historyDraft?.match:match;
+    if(!current) return;
+    const id=current.rows[Number(target.dataset.participant)].id;
+    const selected=new Set(current.scoringIds ?? current.rows.map(row=>row.id));
+    if(target.checked) selected.add(id); else selected.delete(id);
+    current.scoringIds=[...selected];
+    const message=document.querySelector('#review-error');
+    if(message){const text=issues(current);message.hidden=!text;message.textContent=text;}
+    const overview=document.querySelector('[data-action="overview-only"]');
+    if(overview) overview.disabled=busy||!signed();
+    return;
+  }
   if(target.id==='history-date'||target.id==='history-recent'){
     if(target.value){
       window.history.replaceState(null,'',historyHref(target.value));
