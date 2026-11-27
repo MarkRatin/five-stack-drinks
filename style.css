@@ -207,6 +207,10 @@ progress::-moz-progress-bar{background:var(--wine)}
 .atlas-reverse{background-image:url("art/reverse.jpg?v=reverse-ship");background-size:100% 100%;background-position:center}
 .atlas-mirror-coronation{background-image:url("art/mirror-coronation.jpg");background-size:100% 100%;background-position:center}
 .atlas-first-loser{background-image:url("art/first-loser.jpg?v=reversal-art-2");background-size:100% 100%;background-position:center}
+.atlas-new-reversal{background-size:100% 100%;background-position:center}
+.atlas-leader-tax{background-image:url("art/leader-tax.jpg?v=tax-chest")}
+.atlas-good-deeds{background-image:url("art/good-deeds.jpg?v=rescue")}
+.atlas-even-number-pickup{background-image:url("art/even-number-pickup.jpg?v=tickets")}
 .tarot-frame{--plate:#f4e7cd;--ornament:#844a32;--plate-ink:#483024;position:relative;isolation:isolate;overflow:hidden;border:1px solid var(--ornament);border-radius:13px;padding:11px 11px 10px;background:var(--plate);color:var(--plate-ink)}
 .tarot-frame::after{content:"";position:absolute;inset:5px;z-index:1;border:1px solid var(--ornament);border-radius:8px;opacity:.66;pointer-events:none}
 .tarot-frame .tarot-art{border:1px solid color-mix(in srgb,var(--ornament) 52%,transparent);border-radius:5px}

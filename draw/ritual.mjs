@@ -1,5 +1,5 @@
-import {categoryNames} from '../rules.mjs?v=mirror-coronation';
-import {tarotArt} from '../tarot.mjs?v=mirror-coronation';
+import {categoryNames} from '../rules.mjs?v=three-reversals';
+import {tarotArt} from '../tarot.mjs?v=three-reversals';
 import {renderAstrolabe, paintAstrolabe, spinAstrolabe} from './astrolabe.mjs';
 import {shuffleMoves, shuffleDeck, dealCard, dealDuration} from './dealer.mjs';
 
