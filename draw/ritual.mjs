@@ -1,4 +1,4 @@
-import {categoryNames} from '../rules.mjs?v=empty-promise-name';
+import {categoryNames} from '../rules.mjs?v=reversal-20';
 import {tarotArt} from '../tarot.mjs?v=empty-promise';
 import {renderAstrolabe, paintAstrolabe, spinAstrolabe} from './astrolabe.mjs';
 import {shuffleMoves, shuffleDeck, dealCard, dealDuration} from './dealer.mjs';

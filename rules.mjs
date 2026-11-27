@@ -178,7 +178,7 @@ export function availableCards(eligible, drawn) {
 }
 
 const choose = (array, random) => array[Math.floor(random() * array.length)];
-export const drawReversal = (random = Math.random) => random() < 0.1 ? choose(reversals, random).id : null;
+export const drawReversal = (random = Math.random) => random() < 0.2 ? choose(reversals, random).id : null;
 
 export function drawRound(eligible, drawn, random = Math.random) {
   const {available, reset} = availableCards(eligible, drawn);

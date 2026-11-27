@@ -1,8 +1,8 @@
 import {players, fields, groups, groupNames, categoryNames, cards, reversals, dateInTaipei, fmt, eligibleCards,
-  availableCards, drawRound, drawReversal, rerollPool, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=empty-promise-name';
+  availableCards, drawRound, drawReversal, rerollPool, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=reversal-20';
 import {recognizeBatch} from './ocr.mjs?v=played-heroes';
 import {tarotArt} from './tarot.mjs?v=empty-promise';
-import {animateScoreDraw, animateReversalDraw, closeDrawAnimation} from './draw/ritual.mjs?v=empty-promise-name';
+import {animateScoreDraw, animateReversalDraw, closeDrawAnimation} from './draw/ritual.mjs?v=reversal-20';
 
 const icons = {
   upload:'<path d="M12 16V4m-4 4 4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/>',
@@ -279,7 +279,7 @@ function drawPanel() {
       ${isReroll?button('回到原本那張','cancel-reroll','soft'):''}
       ${round.saved&&!isReroll?button('登記下一局','next','secondary'):''}
       ${!edit?button('更正戰績','edit','soft'):''}</div>
-      <p class="subtle">重骰可替換這筆計分，反轉機率每次都是 10%。</p>`;
+      <p class="subtle">重骰可替換這筆計分，反轉機率每次都是 20%。</p>`;
     return resultPanel(round,card,match,results,actions,preview,scoreIndex&&!preview?`第 ${scoreIndex} 次計分 · 已入帳`:'');
   }
   const count=modeCount();
@@ -288,7 +288,7 @@ function drawPanel() {
   return `<section class="panel draw-panel" aria-labelledby="draw-h">
     <div><h2 id="draw-h">翻開命運牌</h2><p>${signed() && review ? `本局可用 ${count} 張計分卡，當前可抽 ${countLeft} 張。`:'確認本局戰績後，讓牌決定這場比什麼。'}</p>
     <div class="actions">${button(`${icon('cards')} ${signed()&&review?'翻開本局計分卡':'等待戰績確認'}`,'draw','primary',(!signed()||!review||busy||!count)?'disabled':'')}</div>
-    <p class="subtle">基本分 5／4／3／2／1 · 反轉機率 10%</p></div>
+    <p class="subtle">基本分 5／4／3／2／1 · 反轉機率 20%</p></div>
     <div class="cardback" aria-hidden="true">${tarotArt('back','back-emblem')}</div>
   </section>`;
 }
@@ -351,7 +351,7 @@ function play() {
     </div><aside class="stack">${scorePanel(day())}
     ${matchStatsPanel()}
     <section class="panel pad rules-inline"><details><summary>計分規則</summary><ul>
-    <li>三張圖開完整牌池，也可選擇只用總覽。</li><li>同分者平分名次積分，每次計分的基本分合計 15。</li><li>每次抽牌都有 10% 機率抽到一張反轉卡。影響當日總榜的反轉卡在這筆基本分入帳後生效。</li>
+    <li>三張圖開完整牌池，也可選擇只用總覽。</li><li>同分者平分名次積分，每次計分的基本分合計 15。</li><li>每次抽牌都有 20% 機率抽到一張反轉卡。影響當日總榜的反轉卡在這筆基本分入帳後生效。</li>
     </ul></details><a class="quick" href="#deck">${icon('book')} 查看 ${cards.length+reversals.length} 張牌的規則</a></section>
     </aside></div>`;
 }
@@ -398,7 +398,7 @@ function historyDetail(round) {
   } else if(!canEdit){
     actions='<p class="notice">這局在本局有尚未確認的變更。<a href="#play">回本局繼續編修</a></p>';
   }
-  if(canEdit&&(!draft||isReroll)) actions+='<p class="subtle">每次重骰都重新判定反轉，機率為 10%。</p>';
+  if(canEdit&&(!draft||isReroll)) actions+='<p class="subtle">每次重骰都重新判定反轉，機率為 20%。</p>';
   const displayRound={...(isReroll?draft:round),revealed:isReroll?draft.revealed:true,rerollId:isReroll?draft.rerollId:null};
   return `<div class="history-detail-head">
     <a class="btn soft" href="${historyHref(historyDate)}">${icon('back')} 返回當日對局</a>
