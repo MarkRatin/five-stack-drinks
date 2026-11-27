@@ -160,6 +160,7 @@ export const reversals = [
   {id:'team-double',name:'全隊加倍',points:basePoints.map(points=>points*2), description:'五人的當局基本分都乘以 2。', punch:'全隊都抽中雙倍券，這場每個人都領兩份。'},
   {id:'big-comeback',name:'大翻盤',dailyBonuses:[0,0,0,2,3], description:'當局基本分入帳後，當日累積總榜第 5 名加 3 分，第 4 名加 2 分。', punch:'總榜後段收到追分券，前排先別急著慶祝。'},
   {id:'first-loser',name:'第二名是頭號輸家',dailyBonuses:[0,-3,0,0,0], description:'當局基本分入帳後，當日累積總榜第 2 名扣 3 分。', punch:'差一點就是第一名，結果先收到扣分通知。'},
+  {id:'empty-promise',name:'你懂我意思嗎？',points:[0,0,0,0,0],description:'這次計分五人都得 0 分。',punch:'分數開得天花亂墜，兌現的時候，支票竟然是空白的。'},
   {id:'small-comeback',name:'小翻盤',points:[5,4,3,3,3], description:'當局第 5 名加 2 分，第 4 名加 1 分。', punch:'這局後兩名有安慰獎，越後面補得越多。'}
 ];
 

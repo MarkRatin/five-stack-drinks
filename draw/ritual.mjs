@@ -1,5 +1,5 @@
-import {categoryNames} from '../rules.mjs?v=draw-ritual';
-import {tarotArt} from '../tarot.mjs?v=first-loser';
+import {categoryNames} from '../rules.mjs?v=empty-promise';
+import {tarotArt} from '../tarot.mjs?v=empty-promise';
 import {renderAstrolabe, paintAstrolabe, spinAstrolabe} from './astrolabe.mjs';
 import {shuffleMoves, shuffleDeck, dealCard, dealDuration} from './dealer.mjs';
 
