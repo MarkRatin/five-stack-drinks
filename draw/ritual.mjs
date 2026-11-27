@@ -1,5 +1,5 @@
-import {categoryNames} from '../rules.mjs?v=three-reversals';
-import {tarotArt} from '../tarot.mjs?v=three-reversals';
+import {cards, categoryNames} from '../rules.mjs?v=three-reversals-merge';
+import {tarotArt} from '../tarot.mjs?v=three-reversals-merge';
 import {renderAstrolabe, paintAstrolabe, spinAstrolabe} from './astrolabe.mjs';
 import {shuffleMoves, shuffleDeck, dealCard, dealDuration} from './dealer.mjs';
 
@@ -66,15 +66,18 @@ function openDraw() {
   return {dialog, display, step, update, close, wait: (callback, delay) => { timer = setTimeout(callback, delay); }};
 }
 
-export function animateScoreDraw(pool, select, complete) {
+export function animateScoreDraw(pool, select, revealed, complete) {
   if (!pool.length) return;
   const {dialog, display, step, update, close, wait} = openDraw();
   const wheel = shuffled(pool);
   const legend = Object.entries(categoryNames).map(([category, name]) => {
-    const count = wheel.filter(card => card.category === category).length;
-    return count ? `<span data-wheel-category="${category}"><i class="legend-dot ${category}" aria-hidden="true"></i>${name} <b>${count}</b> 張</span>` : '';
+    const count = pool.filter(card => card.category === category).length;
+    const total = cards.filter(card => card.category === category).length;
+    return `<span data-wheel-category="${category}"><i class="legend-dot ${category}" aria-hidden="true"></i>${name} <b>${count}／${total}</b></span>`;
   }).join('');
-  display.innerHTML = `<div class="wheel-group">${renderAstrolabe()}<div class="wheel-legend">${legend}</div></div>`;
+  display.innerHTML = `<div class="wheel-group">${renderAstrolabe()}
+    <div class="wheel-pool"><p>本次可抽／牌庫總數</p><div class="wheel-legend">${legend}</div></div>
+  </div>`;
   paintAstrolabe(display, wheel);
   step.textContent = '第一幕 · 牌系';
   const hub = display.querySelector('.astro-hub');
@@ -93,18 +96,22 @@ export function animateScoreDraw(pool, select, complete) {
         step.textContent = '第二幕 · 計分卡';
         const finish = () => {
           close();
-          complete(selected);
+          complete();
         };
         prepareSlot(display, selected, wheel, update, wait, () => {
           closeCurrentDraw = finish;
           dialog.querySelector('.draw-ritual-close').textContent = '查看結果';
+          revealed(selected);
         }, finish);
       });
     }, duration);
   }
 
   hub.onclick = spin;
-  update('占星盤會停在哪一格？', '按下盤心封蠟，轉動占星盤。', '轉動占星盤', spin);
+  const instruction = pool.length < cards.length
+    ? '牌數會依本局戰績資料和這場已抽過的牌調整。按下盤心封蠟開始。'
+    : '按下盤心封蠟，轉動占星盤。';
+  update('占星盤會停在哪一格？', instruction, '轉動占星盤', spin);
   dialog.showModal();
 }
 
