@@ -186,35 +186,8 @@ const hasCardData = (item,match,overviewOnly=false) => item.fields.every(field =
   (!overviewOnly || groups.overview.includes(field)) && match.rows.every(row=>Number.isFinite(row[field])));
 export const eligibleCards = (match, overviewOnly = false) => cards.filter(item=>hasCardData(item,match,overviewOnly));
 
-export function availableCards(eligible, drawn) {
-  const available = eligible.filter(item => !drawn.includes(item.id));
-  if (available.length) return {available, reset: false};
-  // If only a subset is playable, the unused cards stay in the current deck.
-  return drawn.length >= cards.length || eligible.length < cards.length
-    ? {available: eligible, reset: true}
-    : {available: [], reset: false};
-}
-
 const choose = (array, random) => array[Math.floor(random() * array.length)];
 export const drawReversal = (random = Math.random) => random() < 0.2 ? choose(reversals, random).id : null;
-
-export function drawRound(eligible, drawn, random = Math.random) {
-  const {available, reset} = availableCards(eligible, drawn);
-  if (!available.length) return null;
-  const id = choose(available, random).id;
-  return {
-    cardId: id,
-    drawn: [...(reset ? drawn.filter(id => !eligible.some(item => item.id === id)) : drawn), id]
-  };
-}
-
-export function rerollPool(eligible, drawn, tried, currentId) {
-  const alternatives = eligible.filter(card => card.id !== currentId);
-  const unseen = alternatives.filter(card => !tried.includes(card.id));
-  const candidates = unseen.length ? unseen : alternatives;
-  const freshToday = candidates.filter(card => !drawn.includes(card.id));
-  return freshToday.length ? freshToday : candidates;
-}
 
 export function cardDetails(id,version=scoringVersion) {
   const card = findCard(id,version);
