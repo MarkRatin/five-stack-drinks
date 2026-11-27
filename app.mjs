@@ -1,7 +1,8 @@
 import {players, fields, groups, groupNames, categoryNames, cards, reversals, dateInTaipei, fmt, eligibleCards,
-  availableCards, drawRound, drawReversal, rerollCard, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=first-loser';
+  availableCards, drawRound, drawReversal, rerollPool, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=draw-ritual';
 import {recognizeBatch} from './ocr.mjs?v=played-heroes';
 import {tarotArt} from './tarot.mjs?v=first-loser';
+import {animateScoreDraw, animateReversalDraw, closeDrawAnimation} from './draw/ritual.mjs';
 
 const icons = {
   upload:'<path d="M12 16V4m-4 4 4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/>',
@@ -603,46 +604,62 @@ function confirm(baseOnly) {
 function draw() {
   if(!review||busy||activeRound()||!signed()) return;
   const date=boardKey(match.date,Boolean(match.example));
-  const result=drawRound(eligibleCards(match,overviewOnly),state.drawn[date]||[]);
-  if(!result) return;
-  const id=localId();
-  state.drawn[date]=result.drawn;
-  state.rounds.push({id,signature:matchSignature(match),match:structuredClone(match),cardId:result.cardId,
-    reversalId:null,reversalSnapshot:null,scoringVersion,overviewOnly,tried:[result.cardId],revealed:false,saved:false});
-  syncActive(id); persist(); render('#result-h');
-  document.querySelector('.result-tarot')?.classList.add('flip-in');
+  const eligible=eligibleCards(match,overviewOnly);
+  const drawn=state.drawn[date]||[];
+  const {available}=availableCards(eligible,drawn);
+  let result;
+  animateScoreDraw(available,()=>{
+    result=drawRound(eligible,drawn);
+    return available.find(card=>card.id===result.cardId);
+  },card=>{
+    const id=localId();
+    state.drawn[date]=result.drawn;
+    state.rounds.push({id,signature:matchSignature(match),match:structuredClone(match),cardId:card.id,
+      reversalId:null,reversalSnapshot:null,scoringVersion,overviewOnly,tried:[card.id],revealed:false,saved:false});
+    syncActive(id); persist(); render('#result-h');
+  });
 }
-function chooseReroll(round,current) {
+const pickCard=pool=>pool[Math.floor(Math.random()*pool.length)];
+function animateReroll(round,current,complete) {
   const dayKey=boardKey(current.date,Boolean(current.example));
   const tried=round.tried ?? [round.cardId];
-  const next=rerollCard(eligibleCards(current,round.overviewOnly),state.drawn[dayKey]||[],tried,roundCardId(round));
-  if(!next) return false;
-  round.rerollId=next.id;
-  round.rerollVersion=scoringVersion;
-  round.rerollReversalId=null;
-  round.rerollRevealed=false;
-  round.tried=[...new Set([...tried,next.id])];
-  return true;
+  const pool=rerollPool(eligibleCards(current,round.overviewOnly),state.drawn[dayKey]||[],tried,roundCardId(round));
+  animateScoreDraw(pool,()=>pickCard(pool),next=>{
+    round.rerollId=next.id;
+    round.rerollVersion=scoringVersion;
+    round.rerollReversalId=null;
+    round.rerollRevealed=false;
+    round.tried=[...new Set([...tried,next.id])];
+    complete();
+  });
 }
-function drawReversalFor(round) {
+function revealReversal(round,saveDraft=false) {
   if(!round || reversalRevealed(round)) return;
-  const id=drawReversal();
-  if(round.rerollId) {
-    round.rerollReversalId=id;
-    round.rerollRevealed=true;
-  } else {
-    round.reversalId=id;
-    round.reversalSnapshot=reversals.find(item=>item.id===id) ?? null;
-    round.revealed=true;
-  }
-  announce(id?'反轉卡已抽出。':'這次沒有觸發反轉卡。');
+  animateReversalDraw(()=>{
+    const id=drawReversal();
+    const card=reversals.find(item=>item.id===id) ?? null;
+    if(round.rerollId) {
+      round.rerollReversalId=id;
+      round.rerollRevealed=true;
+    } else {
+      round.reversalId=id;
+      round.reversalSnapshot=card;
+      round.revealed=true;
+    }
+    if(saveDraft) persist();
+    return card;
+  },card=>{
+    render('#result-h');
+    announce(card?'反轉卡已抽出。':'這次沒有觸發反轉卡。');
+  });
 }
 function reroll() {
   const round=activeRound();
-  if(!round||busy||!signed()||!chooseReroll(round,match)) return;
-  persist(); render('#result-h');
-  document.querySelector('.result-tarot')?.classList.add('flip-in');
-  announce('已重骰計分卡，請按抽取反轉卡。');
+  if(!round||busy||!signed()) return;
+  animateReroll(round,match,()=>{
+    persist(); render('#result-h');
+    announce('已重骰計分卡，請按抽取反轉卡。');
+  });
 }
 function clearReroll(round) {
   delete round.rerollId;
@@ -723,20 +740,18 @@ function startAdditionalScore() {
   const tried=matchScores(source).map(item=>item.cardId);
   const key=boardKey(source.match.date,Boolean(source.match.example));
   const eligible=eligibleCards(source.match,source.overviewOnly);
-  const card=rerollCard(eligible,state.drawn[key]||[],tried,source.cardId) ?? eligible[0];
-  if(!card) return;
-  additionalScores[view]={
-    id:localId(),matchId:matchId(source),match:structuredClone(source.match),cardId:card.id,
-    reversalId:null,reversalSnapshot:null,scoringVersion,
-    overviewOnly:source.overviewOnly,tried:[...new Set([...tried,card.id])],revealed:false,saved:false
-  };
-  historyMessage='';
-  renderAdditionalDraw();
-}
-function renderAdditionalDraw() {
-  render('#result-h');
-  document.querySelector('.result-tarot')?.classList.add('flip-in');
-  announce('已抽出本次計分的卡片，確認後會新增一筆積分。');
+  const alternatives=rerollPool(eligible,state.drawn[key]||[],tried,source.cardId);
+  const pool=alternatives.length?alternatives:eligible;
+  animateScoreDraw(pool,()=>pickCard(pool),card=>{
+    additionalScores[view]={
+      id:localId(),matchId:matchId(source),match:structuredClone(source.match),cardId:card.id,
+      reversalId:null,reversalSnapshot:null,scoringVersion,
+      overviewOnly:source.overviewOnly,tried:[...new Set([...tried,card.id])],revealed:false,saved:false
+    };
+    historyMessage='';
+    render('#result-h');
+    announce('已抽出本次計分的卡片，確認後會新增一筆積分。');
+  });
 }
 function saveAdditionalScore() {
   const view=route();
@@ -760,15 +775,21 @@ function editHistoryRound(rerolling) {
   const round=viewedRound();
   if(!round||pendingInPlay(round)) return;
   const draft=historyDraft ?? {...round,match:structuredClone(round.match),rerollId:null};
-  if(rerolling && (!validMatch(draft.match)||!chooseReroll(draft,draft.match))) return;
-  draft.editing=!rerolling;
+  if(rerolling){
+    if(!validMatch(draft.match)) return;
+    animateReroll(draft,draft.match,()=>{
+      draft.editing=false;
+      historyDraft=draft;
+      historyMessage='';
+      render('#result-h');
+      announce('已重骰計分卡，請按抽取反轉卡。');
+    });
+    return;
+  }
+  draft.editing=true;
   historyDraft=draft;
   historyMessage='';
-  render(rerolling?'#result-h':'#review');
-  if(rerolling) {
-    document.querySelector('.result-tarot')?.classList.add('flip-in');
-    announce('已重骰計分卡，請按抽取反轉卡。');
-  }
+  render('#review');
 }
 function saveHistoryRound() {
   const round=viewedRound();
@@ -803,13 +824,13 @@ root.addEventListener('click',event=>{
     draw,
     reroll,
     'cancel-reroll':()=>{clearReroll(activeRound());persist();render('#result-h');},
-    reveal:()=>{drawReversalFor(activeRound());persist();render('#result-h');},
+    reveal:()=>revealReversal(activeRound(),true),
     save,
     'additional-start':startAdditionalScore,
-    'additional-reveal':()=>{drawReversalFor(additionalScores[route()]);render('#result-h');},
+    'additional-reveal':()=>revealReversal(additionalScores[route()]),
     'additional-reroll':()=>{
       const round=additionalScores[route()];
-      if(round&&chooseReroll(round,round.match)) renderAdditionalDraw();
+      if(round) animateReroll(round,round.match,()=>render('#result-h'));
     },
     'additional-save':saveAdditionalScore,
     'additional-cancel':()=>{additionalScores[route()]=null;render('[data-action="additional-start"]');},
@@ -827,7 +848,7 @@ root.addEventListener('click',event=>{
     },
     'history-edit':()=>editHistoryRound(false),
     'history-reroll':()=>editHistoryRound(true),
-    'history-reveal':()=>{drawReversalFor(historyDraft);render('#result-h');},
+    'history-reveal':()=>revealReversal(historyDraft),
     'history-save':saveHistoryRound,
     'history-cancel':()=>{
       const action=historyDraft?.rerollId?'history-reroll':'history-edit';
@@ -896,6 +917,7 @@ for(const round of state.rounds.filter(item=>item.saved&&!item.results)) {
 }
 if(backfilled) persist();
 window.addEventListener('hashchange',()=>{
+  closeDrawAnimation();
   historyDraft=null;
   additionalScores.history=null;
   historyMessage='';

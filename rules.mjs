@@ -189,13 +189,12 @@ export function drawRound(eligible, drawn, random = Math.random) {
   };
 }
 
-export function rerollCard(eligible, drawn, tried, currentId, random = Math.random) {
+export function rerollPool(eligible, drawn, tried, currentId) {
   const alternatives = eligible.filter(card => card.id !== currentId);
   const unseen = alternatives.filter(card => !tried.includes(card.id));
   const candidates = unseen.length ? unseen : alternatives;
   const freshToday = candidates.filter(card => !drawn.includes(card.id));
-  const pool = freshToday.length ? freshToday : candidates;
-  return pool.length ? choose(pool, random) : null;
+  return freshToday.length ? freshToday : candidates;
 }
 
 export function cardDetails(id,version=scoringVersion) {
