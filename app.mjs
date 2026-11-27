@@ -1,8 +1,8 @@
 import {players, fields, groups, groupNames, categoryNames, cards, reversals, dateInTaipei, fmt, eligibleCards,
-  availableCards, drawRound, drawReversal, rerollPool, scoringRows, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=four-players';
+  availableCards, drawRound, drawReversal, rerollPool, scoringRows, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=chaos-deck';
 import {recognizeBatch} from './ocr.mjs?v=played-heroes';
-import {tarotArt} from './tarot.mjs?v=empty-promise';
-import {animateScoreDraw, animateReversalDraw, closeDrawAnimation} from './draw/ritual.mjs?v=reversal-title-font';
+import {tarotArt} from './tarot.mjs?v=chaos-deck';
+import {animateScoreDraw, animateReversalDraw, closeDrawAnimation} from './draw/ritual.mjs?v=chaos-deck';
 
 const icons = {
   upload:'<path d="M12 16V4m-4 4 4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/>',
@@ -103,9 +103,10 @@ function activeCard() {
   if(!round) return null;
   return round.rerollId ? cardDetails(round.rerollId,roundScoring(round)) : round.cardSnapshot ?? cardDetails(round.cardId,roundScoring(round));
 }
+const selectedRollCallStart = round => round.rerollId ? round.rerollCallStart : round.rollCallStart;
 function calculate(round,currentMatch) {
   const reversal=selectedReversal(round);
-  return settle(currentMatch,roundCardId(round),reversal?.id,reversal,roundScoring(round));
+  return settle(currentMatch,roundCardId(round),reversal?.id,reversal,roundScoring(round),selectedRollCallStart(round));
 }
 const eligibleForRound = round => eligibleCards(match, round.overviewOnly ?? false);
 
@@ -620,6 +621,7 @@ function confirm(baseOnly) {
   updateStatus(baseOnly?'總覽核對完成，可從基本牌池翻牌。':'戰績核對完成，可以翻牌。',true);
   render('[data-action="draw"]');
 }
+const pickRollCallStart = (cardId, current) => cardId==='roll-call' ? Math.floor(Math.random()*scoringRows(current).length) : undefined;
 function draw() {
   if(!review||busy||activeRound()||!signed()) return;
   const date=boardKey(match.date,Boolean(match.example));
@@ -633,7 +635,7 @@ function draw() {
   },card=>{
     const id=localId();
     state.drawn[date]=result.drawn;
-    state.rounds.push({id,signature:matchSignature(match),match:structuredClone(match),cardId:card.id,
+    state.rounds.push({id,signature:matchSignature(match),match:structuredClone(match),cardId:card.id,rollCallStart:pickRollCallStart(card.id,match),
       reversalId:null,reversalSnapshot:null,scoringVersion,overviewOnly,tried:[card.id],revealed:false,saved:false});
     syncActive(id); persist(); render('#result-h');
   });
@@ -645,6 +647,7 @@ function animateReroll(round,current,complete) {
   const pool=rerollPool(eligibleCards(current,round.overviewOnly),state.drawn[dayKey]||[],tried,roundCardId(round));
   animateScoreDraw(pool,()=>pickCard(pool),next=>{
     round.rerollId=next.id;
+    round.rerollCallStart=pickRollCallStart(next.id,current);
     round.rerollVersion=scoringVersion;
     round.rerollReversalId=null;
     round.rerollRevealed=false;
@@ -682,6 +685,7 @@ function reroll() {
 }
 function clearReroll(round) {
   delete round.rerollId;
+  delete round.rerollCallStart;
   delete round.rerollVersion;
   delete round.rerollReversalId;
   delete round.rerollRevealed;
@@ -700,7 +704,7 @@ function commitRound(round,current,selection=round) {
   if(!results.length) return false;
   const matchChanged=round.saved&&JSON.stringify(round.match)!==JSON.stringify(current);
   const linkedScores=matchChanged ? matchScores(round).filter(item=>item.id!==round.id) : [];
-  const linkedResults=linkedScores.map(item=>settle(current,item.cardId,item.reversalId,roundReversal(item),item.scoringVersion ?? 1));
+  const linkedResults=linkedScores.map(item=>settle(current,item.cardId,item.reversalId,roundReversal(item),item.scoringVersion ?? 1,item.rollCallStart));
   if(linkedResults.some(result=>!result.length)) return false;
 
   const before=boardKey(round.match.date,Boolean(round.match.example));
@@ -718,6 +722,7 @@ function commitRound(round,current,selection=round) {
   round.signature ||= matchSignature(current);
   round.match=structuredClone(current);
   round.cardId=cardId;
+  round.rollCallStart=selectedRollCallStart(selection);
   round.scoringVersion=roundScoring(selection);
   round.cardSnapshot=cardDetails(cardId,round.scoringVersion);
   round.reversalId=reversal?.id ?? null;
@@ -764,6 +769,7 @@ function startAdditionalScore() {
   animateScoreDraw(pool,()=>pickCard(pool),card=>{
     additionalScores[view]={
       id:localId(),matchId:matchId(source),match:structuredClone(source.match),cardId:card.id,
+      rollCallStart:pickRollCallStart(card.id,source.match),
       reversalId:null,reversalSnapshot:null,scoringVersion,
       overviewOnly:source.overviewOnly,tried:[...new Set([...tried,card.id])],revealed:false,saved:false
     };

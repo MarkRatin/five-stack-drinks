@@ -1,5 +1,5 @@
-import {categoryNames} from '../rules.mjs?v=four-players';
-import {tarotArt} from '../tarot.mjs?v=empty-promise';
+import {categoryNames} from '../rules.mjs?v=chaos-deck';
+import {tarotArt} from '../tarot.mjs?v=chaos-deck';
 import {renderAstrolabe, paintAstrolabe, spinAstrolabe} from './astrolabe.mjs';
 import {shuffleMoves, shuffleDeck, dealCard, dealDuration} from './dealer.mjs';
 

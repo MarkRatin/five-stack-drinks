@@ -94,6 +94,15 @@ export const cards = [
   card('receipt-lottery','chaos','發票對獎','總經濟末兩碼越接近 88 越前。','gold',' 點差距',p=>Math.abs(p.gold%100-88),-1,'你最接近中獎的一次'),
   card('clock-out','fun','誰最接近30歲？','擊殺、死亡和助攻的總和越接近 30 越前。','kills deaths assists',' 次差距',p=>Math.abs(p.kills+p.deaths+p.assists-30),-1,'生日不用填，這場的 KDA 幫你報年齡。'),
   card('two-for-one','fun','傷敵1000自損1000','擊殺和死亡差距越小越前。差距相同時，擊殺較多者優先。','kills deaths',' 次差距',p=>Math.abs(p.kills-p.deaths),-1,'拿一顆頭，還一顆頭。',p=>p.kills),
+  card('operator-zero','chaos','客服請按 0','控制效果、治療量、對塔傷害三欄中，數字 0 越多越前。','control heal tower',' 個零',
+    p=>[p.control,p.heal,p.tower].filter(value=>value===0).length,1,'您撥打的三項服務，有兩項無人接聽。'),
+  card('too-long','chaos','戰績太長不看','擊殺、死亡、助攻的數字總位數越少越前。每個 0 算一位，斜線不算。','kills deaths assists',' 位數',
+    p=>String(p.kills).length+String(p.deaths).length+String(p.assists).length,-1,'請用一句話交代這局。你連戰績都寫得好精簡。'),
+  card('roll-call','chaos','老師點名','隨機點一位計分玩家當第一名。依戰績從上往下排，到底接回最上面，跳過非計分玩家。','rating',' 順位',
+    (p,rows,match,start)=>{
+      const seats=scoringRows(match);
+      return (seats.indexOf(p)-start%seats.length+seats.length)%seats.length+1;
+    },-1,'老師只看座位表。剛剛那波五殺，下課再講。'),
   card('perfect-ten','chaos','十全十美','結算評分最接近 10.0 的人優先。','rating',' 分差距',p=>Math.abs(p.rating-10),-1,'評分太高也會考過頭。'),
   card('full-kda','fun','三元及第','取擊殺、死亡、助攻的最小值，這個值越高越前。','kills deaths assists','',p=>Math.min(p.kills,p.deaths,p.assists),1,'三科都得交卷，連陣亡那科都不能空白。'),
   card('overtime','fun','無薪加班','每一萬經濟換到的擊殺加助攻越多越前。','gold kills assists',' 次／萬經濟',p=>p.gold ? 10000*(p.kills+p.assists)/p.gold : 0,1,'薪水還沒發，團戰已經打完了。'),
@@ -209,7 +218,7 @@ export function cardDetails(id,version=scoringVersion) {
 
 const rounded = value => Number.isFinite(value) ? Math.round(value * 1e8) / 1e8 : value;
 const average = (points, start, end) => points.slice(start,end).reduce((sum, value) => sum + value, 0) / (end-start);
-export function settle(match, cardId, reversalId, reversalSnapshot,version=scoringVersion) {
+export function settle(match, cardId, reversalId, reversalSnapshot,version=scoringVersion,rollCallStart=0) {
   const item = findCard(cardId,version);
   const reversal = reversalSnapshot ?? reversals.find(card => card.id === reversalId);
   if (!item || !hasCardData(item,match)) return [];
@@ -221,7 +230,7 @@ export function settle(match, cardId, reversalId, reversalSnapshot,version=scori
       'team-double':[8,6,4,2],'empty-promise':[0,0,0,0],'small-comeback':[4,3,3,3]};
     reversalPoints = variants[reversal.id] ?? reversalPoints;
   }
-  const results = participants.map(row=>({id:row.id,name:row.name,value:rounded(item.measure(row,match.rows,match)),tie:item.tieBreak?.(row) ?? 0}))
+  const results = participants.map(row=>({id:row.id,name:row.name,value:rounded(item.measure(row,match.rows,match,rollCallStart)),tie:item.tieBreak?.(row) ?? 0}))
     .sort((a,b)=>a.value===b.value ? b.tie-a.tie : (b.value-a.value)*item.direction);
   let start = 0;
   while (start < results.length) {
@@ -236,7 +245,7 @@ export function settle(match, cardId, reversalId, reversalSnapshot,version=scori
 }
 
 export function recordedResults(round) {
-  return round.results ?? settle(round.match, round.cardId, round.reversalId, round.reversalSnapshot, round.scoringVersion ?? 1);
+  return round.results ?? settle(round.match, round.cardId, round.reversalId, round.reversalSnapshot, round.scoringVersion ?? 1, round.rollCallStart);
 }
 
 const rankTotals = totals => Object.values(totals)

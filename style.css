@@ -200,6 +200,10 @@ progress::-moz-progress-bar{background:var(--wine)}
 .atlas-budget-clinic{background-image:url("art/budget-clinic.jpg");background-size:100% 100%;background-position:center}
 .atlas-team-double{background-image:url("art/team-double-redesign.jpg");background-size:100% 100%;background-position:center}
 .atlas-empty-promise{background-image:url("art/empty-promise.png");background-size:100% 100%;background-position:center}
+.atlas-new-chaos{background-size:100% 100%;background-position:center}
+.atlas-operator-zero{background-image:url("art/operator-zero.jpg")}
+.atlas-too-long{background-image:url("art/too-long.jpg")}
+.atlas-roll-call{background-image:url("art/roll-call.jpg")}
 .atlas-first-loser{background-image:url("art/first-loser.jpg");background-size:100% 100%;background-position:center}
 .tarot-frame{--plate:#f4e7cd;--ornament:#844a32;--plate-ink:#483024;position:relative;isolation:isolate;overflow:hidden;border:1px solid var(--ornament);border-radius:13px;padding:11px 11px 10px;background:var(--plate);color:var(--plate-ink)}
 .tarot-frame::after{content:"";position:absolute;inset:5px;z-index:1;border:1px solid var(--ornament);border-radius:8px;opacity:.66;pointer-events:none}
