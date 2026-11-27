@@ -49,6 +49,9 @@ export function tarotArt(id, className = '') {
   if (id === 'team-double') return `<span class="tarot-art atlas-team-double ${className}" aria-hidden="true"></span>`;
   if (id === 'empty-promise') return `<span class="tarot-art atlas-empty-promise ${className}" aria-hidden="true"></span>`;
   if (id === 'first-loser') return `<span class="tarot-art atlas-first-loser ${className}" aria-hidden="true"></span>`;
+  if (['teamfight-opener','hit-and-run','all-five-pass','human-punching-bag'].includes(id)) {
+    return `<span class="tarot-art atlas-new-fun atlas-${id} ${className}" aria-hidden="true"></span>`;
+  }
   if (['operator-zero','too-long','roll-call'].includes(id)) {
     return `<span class="tarot-art atlas-new-chaos atlas-${id} ${className}" aria-hidden="true"></span>`;
   }
