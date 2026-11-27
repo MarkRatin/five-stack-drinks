@@ -436,8 +436,9 @@ function tarotEntry(item, category) {
   const rule = item.rule ?? item.description;
   const fourPoints = {chosen:'1／3／4／2',reverse:'1／2／3／4',swap:'1／3／2／4',
     'team-double':'8／6／4／2','empty-promise':'0／0／0／0','small-comeback':'4／3／3／3'};
+  const fourPlayerDailyNote = item.id === 'big-comeback' ? '四人場大翻盤由當日總榜最後兩名獲得加分。' : '';
   const points = item.dailyBonuses
-    ? '總榜並列者平分占用名次的加分或扣分。四人場大翻盤由當日總榜最後兩名獲得加分。'
+    ? '總榜並列者平分占用名次的加分或扣分。' + fourPlayerDailyNote
     : `${category==='reversal'?'當局原始第 ':'第 '}1 到第 5 名依序得 ${item.points?.join('／') ?? '5／4／3／2／1'} 分。${category==='reversal'&&fourPoints[item.id]?`四人時依序得 ${fourPoints[item.id]} 分。`:category==='reversal'?'':'四人時依序得 4／3／2／1 分。'}並列者平分占用名次的分數。`;
   return `<article class="tarot-entry" aria-label="${esc(type)}">
     <div class="deck-flipper">
