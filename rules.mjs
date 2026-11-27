@@ -172,7 +172,14 @@ export const reversals = [
   {id:'big-comeback',name:'大翻盤',dailyBonuses:[0,0,0,2,3], description:'當局基本分入帳後，當日累積總榜第 5 名加 3 分，第 4 名加 2 分。', punch:'總榜後段收到追分券，前排先別急著慶祝。'},
   {id:'first-loser',name:'第二名是頭號輸家',dailyBonuses:[0,-3,0,0,0], description:'當局基本分入帳後，當日累積總榜第 2 名扣 3 分。', punch:'差一點就是第一名，結果先收到扣分通知。'},
   {id:'empty-promise',name:'你懂我意思？',points:[0,0,0,0,0],description:'這次計分五人都得 0 分。',punch:'分數開得天花亂墜，兌現的時候，支票竟然是空白的。'},
-  {id:'small-comeback',name:'小翻盤',points:[5,4,3,3,3], description:'當局第 5 名加 2 分，第 4 名加 1 分。', punch:'這局後兩名有安慰獎，越後面補得越多。'}
+  {id:'small-comeback',name:'小翻盤',points:[5,4,3,3,3], description:'當局第 5 名加 2 分，第 4 名加 1 分。', punch:'這局後兩名有安慰獎，越後面補得越多。'},
+  {
+    id: 'mirror-coronation',
+    name: '倒影加冕',
+    description: '當局最後一名追平原第一名實拿的基本分。若末位並列，並列者都追平。',
+    punch: '鏡前是小兵，鏡裡已經戴上王冠。',
+    pointsNote: '無並列時，五人場依原始名次得 5／4／3／2／5 分，四人場得 4／3／2／4 分。'
+  }
 ];
 
 const hasCardData = (item,match,overviewOnly=false) => item.fields.every(field =>
@@ -240,6 +247,13 @@ export function settle(match, cardId, reversalId, reversalSnapshot,version=scori
     const final = reversalPoints ? average(reversalPoints, start, end) : base;
     for (const entry of results.slice(start,end)) Object.assign(entry, {rank:start+1,base,final});
     start = end;
+  }
+  if (reversal?.id === 'mirror-coronation' && results.length) {
+    const firstPlacePoints = results[0].base;
+    const lastPlaceRank = results.at(-1).rank;
+    for (const entry of results.slice(lastPlaceRank - 1)) {
+      entry.final = firstPlacePoints;
+    }
   }
   return results.map(({tie,...result})=>result);
 }

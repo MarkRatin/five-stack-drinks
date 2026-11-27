@@ -49,6 +49,7 @@ export function tarotArt(id, className = '') {
   if (id === 'team-double') return `<span class="tarot-art atlas-team-double ${className}" aria-hidden="true"></span>`;
   if (id === 'empty-promise') return `<span class="tarot-art atlas-empty-promise ${className}" aria-hidden="true"></span>`;
   if (id === 'reverse') return `<span class="tarot-art atlas-reverse ${className}" aria-hidden="true"></span>`;
+  if (id === 'mirror-coronation') return `<span class="tarot-art atlas-mirror-coronation ${className}" aria-hidden="true"></span>`;
   if (id === 'first-loser') return `<span class="tarot-art atlas-first-loser ${className}" aria-hidden="true"></span>`;
   if (['operator-zero','too-long','roll-call'].includes(id)) {
     return `<span class="tarot-art atlas-new-chaos atlas-${id} ${className}" aria-hidden="true"></span>`;
