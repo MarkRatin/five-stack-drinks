@@ -200,6 +200,11 @@ progress::-moz-progress-bar{background:var(--wine)}
 .atlas-budget-clinic{background-image:url("art/budget-clinic.jpg");background-size:100% 100%;background-position:center}
 .atlas-team-double{background-image:url("art/team-double-redesign.jpg");background-size:100% 100%;background-position:center}
 .atlas-empty-promise{background-image:url("art/empty-promise.png");background-size:100% 100%;background-position:center}
+.atlas-new-fun{background-size:100% 100%;background-position:center}
+.atlas-teamfight-opener{background-image:url("art/teamfight-opener.jpg")}
+.atlas-hit-and-run{background-image:url("art/hit-and-run.jpg")}
+.atlas-all-five-pass{background-image:url("art/all-five-pass.jpg")}
+.atlas-human-punching-bag{background-image:url("art/human-punching-bag.jpg")}
 .atlas-new-chaos{background-size:100% 100%;background-position:center}
 .atlas-operator-zero{background-image:url("art/operator-zero.jpg")}
 .atlas-too-long{background-image:url("art/too-long.jpg")}
