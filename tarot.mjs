@@ -4,7 +4,7 @@ const atlases = [
     ['star', 'kills', 'damage'],
     ['tank', 'assists', 'gold'],
     ['tower', 'attendance', 'live'],
-    ['reverse', null, 'back']
+    [null, null, 'back']
   ],
   [
     ['last-hit-share', 'miracle', 'broke'],
@@ -48,6 +48,7 @@ export function tarotArt(id, className = '') {
   if (id === 'budget-clinic') return `<span class="tarot-art atlas-budget-clinic ${className}" aria-hidden="true"></span>`;
   if (id === 'team-double') return `<span class="tarot-art atlas-team-double ${className}" aria-hidden="true"></span>`;
   if (id === 'empty-promise') return `<span class="tarot-art atlas-empty-promise ${className}" aria-hidden="true"></span>`;
+  if (id === 'reverse') return `<span class="tarot-art atlas-reverse ${className}" aria-hidden="true"></span>`;
   if (id === 'first-loser') return `<span class="tarot-art atlas-first-loser ${className}" aria-hidden="true"></span>`;
   if (['teamfight-opener','hit-and-run','all-five-pass','human-punching-bag'].includes(id)) {
     return `<span class="tarot-art atlas-new-fun atlas-${id} ${className}" aria-hidden="true"></span>`;
