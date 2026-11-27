@@ -201,7 +201,7 @@ progress::-moz-progress-bar{background:var(--wine)}
 .atlas-team-double{background-image:url("art/team-double-redesign.jpg");background-size:100% 100%;background-position:center}
 .atlas-empty-promise{background-image:url("art/empty-promise.png");background-size:100% 100%;background-position:center}
 .atlas-new-chaos{background-size:100% 100%;background-position:center}
-.atlas-operator-zero{background-image:url("art/operator-zero.jpg")}
+.atlas-operator-zero{background-image:url("art/operator-zero.jpg?v=operator-zero-art")}
 .atlas-too-long{background-image:url("art/too-long.jpg")}
 .atlas-roll-call{background-image:url("art/roll-call.jpg")}
 .atlas-reverse{background-image:url("art/reverse.jpg?v=reverse-ship");background-size:100% 100%;background-position:center}
