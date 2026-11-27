@@ -1,5 +1,5 @@
 import {categoryNames} from '../rules.mjs?v=chaos-deck';
-import {tarotArt} from '../tarot.mjs?v=chaos-deck';
+import {tarotArt} from '../tarot.mjs?v=reversal-art';
 import {renderAstrolabe, paintAstrolabe, spinAstrolabe} from './astrolabe.mjs';
 import {shuffleMoves, shuffleDeck, dealCard, dealDuration} from './dealer.mjs';
 
