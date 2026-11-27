@@ -1,8 +1,8 @@
 import {players, fields, groups, groupNames, categoryNames, cards, reversals, dateInTaipei, fmt, eligibleCards,
-  drawReversal, scoringRows, cardDetails, settle, recordedResults, dailyTotals, settleDay, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=match-pool';
+  drawReversal, scoringRows, cardDetails, settle, recordedResults, dailyTotals, settleDay, isDailyReversal, blankMatch, sample, backfillKnownHeroes, participationRate, expectedKills, scoringVersion} from './rules.mjs?v=three-reversals-merge';
 import {recognizeBatch} from './ocr.mjs?v=played-heroes';
-import {tarotArt} from './tarot.mjs?v=mirror-coronation';
-import {animateScoreDraw, animateReversalDraw, closeDrawAnimation} from './draw/ritual.mjs?v=match-pool';
+import {tarotArt} from './tarot.mjs?v=three-reversals-merge';
+import {animateScoreDraw, animateReversalDraw, closeDrawAnimation} from './draw/ritual.mjs?v=three-reversals-merge';
 
 const icons = {
   upload:'<path d="M12 16V4m-4 4 4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/>',
@@ -250,7 +250,7 @@ function reversalNotice(round,reversal,results,currentMatch,preview) {
   if(!reversal) return `<p class="subtle result-no-reversal">${round.rerollId?'這次重骰':'這次計分'}未觸發反轉。</p>`;
 
   let bonuses = '';
-  if(reversal.dailyBonuses && results.length) {
+  if(isDailyReversal(reversal) && results.length) {
     const roundIndex = state.rounds.findIndex(item=>item.id===round.id);
     const prior = state.rounds.slice(0,roundIndex===-1?state.rounds.length:roundIndex)
       .filter(item=>item.match.example===Boolean(currentMatch.example));
@@ -258,9 +258,10 @@ function reversalNotice(round,reversal,results,currentMatch,preview) {
     const awards = settleDay([...prior,current],currentMatch.date).bonusesByRound.get(round.id) ?? [];
     const label = preview ? '確認入帳時的當日總榜調整' : '當日總榜調整';
     if(awards.length) bonuses = `<p class="reversal-bonuses">${label} · ${awards.map(({name,bonus})=>`${esc(name)} ${bonus>0?'+':''}${fmt(bonus)} 分`).join('、')}</p>`;
+    else if(reversal.dailyEffect) bonuses = `<p class="reversal-bonuses">${label} · 無需調整</p>`;
   }
 
-  const scope = reversal.dailyBonuses ? '影響當日總榜' : '影響當局積分';
+  const scope = isDailyReversal(reversal) ? '影響當日總榜' : '影響當局積分';
   return `<div class="reversal tarot-reversal tarot-reversal-note">${tarotArt(reversal.id)}<div><p>反轉牌 · <strong>${esc(reversal.name)}</strong><br><strong>${scope}</strong><br>${esc(reversalText(reversal,currentMatch))}</p>${bonuses}</div></div>`;
 }
 function resultPanel(round,card,currentMatch,results,actions,preview,scoreLabel='') {
@@ -445,7 +446,8 @@ function tarotEntry(item, category) {
   const backId=`deck-rule-${esc(item.id)}`;
   const rule = item.rule ?? item.description;
   const fourPoints = {chosen:'1／3／4／2',reverse:'1／2／3／4',swap:'1／3／2／4',
-    'team-double':'8／6／4／2','empty-promise':'0／0／0／0','small-comeback':'4／3／3／3'};
+    'team-double':'8／6／4／2','empty-promise':'0／0／0／0','small-comeback':'4／3／3／3',
+    'even-number-pickup':'4／4／2／2'};
   const fourPlayerDailyNote = item.id === 'big-comeback' ? '四人場大翻盤由當日總榜最後兩名獲得加分。' : '';
   const points = item.pointsNote ?? (item.dailyBonuses
     ? '總榜並列者平分占用名次的加分或扣分。' + fourPlayerDailyNote
@@ -459,7 +461,7 @@ function tarotEntry(item, category) {
         </div>
         <div class="tarot-frame deck-back tarot-${esc(category)}" id="${backId}" aria-hidden="true">
           <strong class="deck-back-title">${name}</strong>
-          ${category==='reversal'?`<span class="reversal-scope">${item.dailyBonuses?'影響當日總榜':'影響當局積分'}</span>`:''}
+          ${category==='reversal'?`<span class="reversal-scope">${isDailyReversal(item)?'影響當日總榜':'影響當局積分'}</span>`:''}
           ${item.punch?`<p class="deck-back-punch">${esc(item.punch)}</p>`:''}
           <span class="deck-back-label">評分標準</span>
           <p class="deck-back-rule">${esc(rule)}</p>

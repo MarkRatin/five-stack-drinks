@@ -179,8 +179,27 @@ export const reversals = [
     description: '當局最後一名追平原第一名實拿的基本分。若末位並列，並列者都追平。',
     punch: '鏡前是小兵，鏡裡已經戴上王冠。',
     pointsNote: '無並列時，五人場依原始名次得 5／4／3／2／5 分，四人場得 4／3／2／4 分。'
-  }
+  },
+  {
+    id: 'leader-tax',
+    name: '領先要繳稅',
+    dailyEffect: {type:'limit-lead',maxLead:3},
+    description: '當局積分入帳後，若總榜第一名領先第二名超過 3 分，從第一名扣掉全部超出的分數；差距在 3 分以內照原分。',
+    punch: '三分以內免稅，超出的全部上繳。',
+    pointsNote: '總榜第一名與第二名並列或相差不超過 3 分時，不扣分。'
+  },
+  {
+    id: 'good-deeds',
+    name: '好人有好報',
+    matchBonus: {field:'assists',points:2},
+    description: '本局計分成員中，助攻最多的人加 2 分；並列最多者平分這 2 分。全員零助攻時照原分。',
+    punch: '人頭讓給你，老天有看到。',
+    pointsNote: '先按原始名次配分，再將 2 分獎勵平均分給助攻最多的計分成員。'
+  },
+  {id:'even-number-pickup',name:'雙號取餐',points:[5,5,3,3,1], description:'當局原始第 2 名、第 4 名各加 1 分；並列者平分佔用名次的反轉後配分。', punch:'請 2 號、4 號取餐。1 號，你的還在做。'}
 ];
+
+export const isDailyReversal = reversal => Boolean(reversal?.dailyBonuses || reversal?.dailyEffect);
 
 const hasCardData = (item,match,overviewOnly=false) => item.fields.every(field =>
   (!overviewOnly || groups.overview.includes(field)) && match.rows.every(row=>Number.isFinite(row[field])));
@@ -203,11 +222,13 @@ export function settle(match, cardId, reversalId, reversalSnapshot,version=scori
   const reversal = reversalSnapshot ?? reversals.find(card => card.id === reversalId);
   if (!item || !hasCardData(item,match)) return [];
   const participants = scoringRows(match);
+  if (reversal?.matchBonus && !participants.every(row=>Number.isFinite(row[reversal.matchBonus.field]))) return [];
   const points = Array.from({length:participants.length}, (_, index) => participants.length - index);
   let reversalPoints = reversal?.points;
   if (participants.length === 4 && reversal?.id) {
     const variants = {chosen:[1,3,4,2],reverse:[1,2,3,4],swap:[1,3,2,4],
-      'team-double':[8,6,4,2],'empty-promise':[0,0,0,0],'small-comeback':[4,3,3,3]};
+      'team-double':[8,6,4,2],'empty-promise':[0,0,0,0],'small-comeback':[4,3,3,3],
+      'even-number-pickup':[4,4,2,2]};
     reversalPoints = variants[reversal.id] ?? reversalPoints;
   }
   const results = participants.map(row=>({id:row.id,name:row.name,value:rounded(item.measure(row,match.rows,match,rollCallStart)),tie:item.tieBreak?.(row) ?? 0}))
@@ -226,6 +247,13 @@ export function settle(match, cardId, reversalId, reversalSnapshot,version=scori
     const lastPlaceRank = results.at(-1).rank;
     for (const entry of results.slice(lastPlaceRank - 1)) {
       entry.final = firstPlacePoints;
+    }
+  } else if (reversal?.matchBonus && participants.length) {
+    const {field,points:bonus} = reversal.matchBonus;
+    const maximum = Math.max(...participants.map(row=>row[field]));
+    if (maximum > 0) {
+      const winners = new Set(participants.filter(row=>row[field]===maximum).map(row=>row.id));
+      for (const entry of results) if (winners.has(entry.id)) entry.final=rounded(entry.final+bonus/winners.size);
     }
   }
   return results.map(({tie,...result})=>result);
@@ -256,10 +284,23 @@ export function settleDay(rounds, date) {
     }
 
     const reversal = round.reversalSnapshot ?? reversals.find(card=>card.id===round.reversalId);
-    if (!reversal?.dailyBonuses || !results.length) continue;
+    if (!isDailyReversal(reversal) || !results.length) continue;
 
     const ranking = rankTotals(totals);
     const awards = [];
+    if (reversal.dailyEffect?.type === 'limit-lead') {
+      if (ranking.length >= 2) {
+        const excess = rounded(ranking[0].total-ranking[1].total-reversal.dailyEffect.maxLead);
+        if (excess > 0) {
+          const {id,name} = ranking[0];
+          totals[id].total = rounded(totals[id].total-excess);
+          awards.push({id,name,bonus:-excess});
+        }
+      }
+      bonusesByRound.set(round.id,awards);
+      continue;
+    }
+    if (!reversal.dailyBonuses) continue;
     let start = 0;
     while (start < ranking.length) {
       let end = start + 1;

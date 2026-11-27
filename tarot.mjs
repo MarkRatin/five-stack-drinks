@@ -51,6 +51,9 @@ export function tarotArt(id, className = '') {
   if (id === 'reverse') return `<span class="tarot-art atlas-reverse ${className}" aria-hidden="true"></span>`;
   if (id === 'mirror-coronation') return `<span class="tarot-art atlas-mirror-coronation ${className}" aria-hidden="true"></span>`;
   if (id === 'first-loser') return `<span class="tarot-art atlas-first-loser ${className}" aria-hidden="true"></span>`;
+  if (['leader-tax','good-deeds','even-number-pickup'].includes(id)) {
+    return `<span class="tarot-art atlas-new-reversal atlas-${id} ${className}" aria-hidden="true"></span>`;
+  }
   if (['operator-zero','too-long','roll-call'].includes(id)) {
     return `<span class="tarot-art atlas-new-chaos atlas-${id} ${className}" aria-hidden="true"></span>`;
   }
